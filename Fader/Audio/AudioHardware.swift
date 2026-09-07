@@ -147,6 +147,10 @@ struct AudioSource: Identifiable {
             var pathBuffer = [CChar](repeating: 0, count: Int(FaderProcessPathMaxSize))
             let pathSize = proc_pidpath(pid, &pathBuffer, UInt32(pathBuffer.count))
             let executablePath = String(decoding: pathBuffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }, as: UTF8.self)
+            // Check the actual helper before resolving its responsible app. Tapping
+            // call audio can break the call's echo-cancellation and ducking behavior.
+            let rawProcessName = pathSize > 0 ? URL(fileURLWithPath: executablePath).lastPathComponent : nil
+            guard !AudioMixingPolicy.isProtected(bundleID: rawID, executableName: rawProcessName) else { continue }
             let executableURL = app?.executableURL ?? (pathSize > 0 ? URL(fileURLWithPath: executablePath) : nil)
             if let executable = executableURL {
                 let parts = executable.pathComponents
@@ -156,7 +160,7 @@ struct AudioSource: Identifiable {
             }
             let bundle = bundleURL.flatMap(Bundle.init(url:))
             let key = bundle?.bundleIdentifier ?? rawID
-            guard key != Bundle.main.bundleIdentifier else { continue }
+            guard key != Bundle.main.bundleIdentifier, !AudioMixingPolicy.isProtected(bundleID: key) else { continue }
             let name = [bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
                         bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String,
                         app?.localizedName, executableURL?.lastPathComponent]

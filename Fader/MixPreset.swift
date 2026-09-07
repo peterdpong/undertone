@@ -14,11 +14,7 @@ struct MixSnapshot: Codable, Equatable {
 
     init(settings: [String: SourceSettings], names: [String: String], output: PresetDevice?, input: PresetDevice?) {
         // Process IDs are recycled; only app identities can safely survive a relaunch.
-        let savedApps = settings.filter { !$0.key.hasPrefix("pid.") }.mapValues {
-            var value = $0
-            value.volume = SourceSettings.clampedVolume(value.volume)
-            return value
-        }
+        let savedApps = AudioMixingPolicy.sanitized(settings).filter { !$0.key.hasPrefix("pid.") }
         apps = savedApps
         self.names = names.filter { savedApps[$0.key] != nil }
         self.output = output
@@ -27,8 +23,8 @@ struct MixSnapshot: Codable, Equatable {
 
     func matches(_ other: MixSnapshot) -> Bool {
         // Explicit defaults and apps that have never been adjusted mean the same thing.
-        let adjusted = apps.filter { $0.value != SourceSettings() }
-        let otherAdjusted = other.apps.filter { $0.value != SourceSettings() }
+        let adjusted = AudioMixingPolicy.sanitized(apps).filter { $0.value != SourceSettings() }
+        let otherAdjusted = AudioMixingPolicy.sanitized(other.apps).filter { $0.value != SourceSettings() }
         return adjusted == otherAdjusted && Self.matches(output, other.output) && Self.matches(input, other.input)
     }
 
@@ -54,7 +50,15 @@ struct PresetLibrary {
 
     func load() -> [MixPreset] {
         guard let data = defaults.data(forKey: "mixPresets") else { return [] }
-        return (try? JSONDecoder().decode([MixPreset].self, from: data)) ?? []
+        let saved = (try? JSONDecoder().decode([MixPreset].self, from: data)) ?? []
+        let migrated = saved.map { preset in
+            var preset = preset
+            preset.mix = MixSnapshot(settings: preset.mix.apps, names: preset.mix.names,
+                                     output: preset.mix.output, input: preset.mix.input)
+            return preset
+        }
+        if migrated != saved { save(migrated) }
+        return migrated
     }
 
     func save(_ presets: [MixPreset]) {

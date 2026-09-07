@@ -13,6 +13,9 @@ import Foundation
     private var renderState: OpaquePointer?
 
     init(source: AudioSource, output: AudioDevice, gain: Float) throws {
+        guard !AudioMixingPolicy.isProtected(bundleID: source.id) else {
+            throw AudioFailure(operation: "Call audio must stay on the macOS audio path", status: kAudioHardwareUnsupportedOperationError)
+        }
         processes = source.processes.sorted()
         outputUID = output.uid
         sampleRate = output.sampleRate

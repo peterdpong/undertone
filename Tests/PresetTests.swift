@@ -36,8 +36,22 @@ import Foundation
         precondition(library.load()[0].id == preset.id && library.load()[0].name == "Calls")
         library.save([])
         precondition(library.load().isEmpty, "Deletion must survive relaunch")
+        var legacyCallPreset = preset
+        legacyCallPreset.mix.apps["com.apple.avconferenced"] = SourceSettings(volume: 0.99586153)
+        legacyCallPreset.mix.apps["com.apple.FaceTime"] = SourceSettings(volume: 4, outputUID: "headphones")
+        legacyCallPreset.mix.names["com.apple.avconferenced"] = "Call helper"
+        library.save([legacyCallPreset])
+        let migrated = library.load()[0]
+        precondition(migrated.mix.apps["com.apple.avconferenced"] == nil && migrated.mix.apps["com.apple.FaceTime"] == nil,
+                     "Loading an old preset must remove call levels and routes")
+        precondition(migrated.mix.names["com.apple.avconferenced"] == nil)
+        precondition(migrated.mix.apps["com.browser"]?.volume == 2, "Migration must preserve browser boost")
+        precondition(migrated.mix.matches(legacyCallPreset.mix), "Protected call entries must not affect preset matching")
+        precondition(library.load()[0] == migrated, "Migration must persist")
+        precondition(AudioMixingPolicy.sanitized(legacyCallPreset.mix.apps) == migrated.mix.apps,
+                     "Applying an unmigrated preset must use the same call protection")
         defaults.set(Data("invalid".utf8), forKey: "mixPresets")
         precondition(library.load().isEmpty, "Invalid data must not crash startup")
-        print("PASS: preset snapshots, stable app identity, persistence, matching, rename, deletion, invalid data")
+        print("PASS: preset snapshots, identity, persistence, matching, rename, deletion, call migration, invalid data")
     }
 }

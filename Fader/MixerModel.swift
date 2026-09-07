@@ -32,11 +32,8 @@ import ServiceManagement
     init() {
         if let data = UserDefaults.standard.data(forKey: "sourceSettings"),
            let saved = try? JSONDecoder().decode([String: SourceSettings].self, from: data) {
-            settings = saved.mapValues { value in
-                var value = value
-                value.volume = SourceSettings.clampedVolume(value.volume)
-                return value
-            }
+            settings = AudioMixingPolicy.sanitized(saved)
+            if settings != saved { persistSettings() }
         }
         let changed: @Sendable () -> Void = { [weak self] in
             Task { @MainActor in self?.scheduleRefresh() }
@@ -62,7 +59,9 @@ import ServiceManagement
         // sources stay reachable while playing, and paused apps keep preferences.
         sources.filter(\.isPlaying)
     }
-    func preference(_ id: String) -> SourceSettings { settings[id] ?? SourceSettings() }
+    func preference(_ id: String) -> SourceSettings {
+        AudioMixingPolicy.isProtected(bundleID: id) ? SourceSettings() : settings[id] ?? SourceSettings()
+    }
 
     func snapshot() -> MixSnapshot {
         var values = settings.filter { $0.value != SourceSettings() }
@@ -107,11 +106,7 @@ import ServiceManagement
 
     func applyPreset(_ preset: MixPreset) {
         // Replace the mix so boosts from a previous preset cannot leak into this one.
-        settings = preset.mix.apps.mapValues {
-            var value = $0
-            value.volume = SourceSettings.clampedVolume(value.volume)
-            return value
-        }
+        settings = AudioMixingPolicy.sanitized(preset.mix.apps)
         sourceNames.merge(preset.mix.names) { _, new in new }
         persistSettings()
         sourceErrors = [:]
@@ -187,6 +182,7 @@ import ServiceManagement
         }
     }
     func update(_ id: String, _ change: (inout SourceSettings) -> Void) {
+        guard !AudioMixingPolicy.isProtected(bundleID: id) else { return }
         var value = preference(id)
         change(&value)
         value.volume = SourceSettings.clampedVolume(value.volume)

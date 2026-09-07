@@ -17,6 +17,8 @@ Input selection changes the macOS default input. Apps with their own microphone 
 
 The application filter follows Core Audio's output-running notifications, with no polling or extra audio taps. An app that keeps its output stream running through silence may remain visible. Muting an app in Fader does not itself hide its active stream, so the unmute control stays available.
 
+FaceTime and Apple's `avconferenced` / `callservicesd` helpers are excluded from app mixing. Intercepting their playback can disrupt call echo cancellation and cause quiet call audio or an echo for the other person. Use macOS controls for FaceTime and adjust the browser or media app separately. Existing call-volume preferences and preset entries are removed automatically; the remaining preset settings are preserved. App sliders use 1% steps, and levels that round to 100% bypass processing on the default output.
+
 ## Build and run
 
 Requires macOS 14.2+, Xcode 26+ (Swift 6.2+), and XcodeGen. There are no packages to download during a build.
@@ -62,7 +64,7 @@ Drag an application's slider above 100%, or Control-click the percentage for 100
 
 200% applies 2× amplitude (about +6 dB); 400% applies 4× (about +12 dB), before peak protection. These percentages do not represent perceived loudness. Soft peak limiting keeps each boosted app's samples within full scale and preserves left/right balance. Quiet signals receive the requested gain; loud peaks receive less gain. The limiter uses no lookahead or added buffering. It can color loud audio and cannot repair distortion already present in the source or guarantee that the final sum of multiple apps will not clip.
 
-For a video that gets quieter during a FaceTime call, boost the video/browser app rather than FaceTime. This adds gain to captured app audio; it does not disable macOS ducking. Its effectiveness during FaceTime, and changes in level when a call ends, still require a live-call test on the target device. Return the app to 100% when the extra gain is no longer needed.
+For a video that gets quieter during a FaceTime call, boost the video/browser app. FaceTime and its call helpers stay on their normal audio path and cannot be adjusted in Fader. Browser boost adds gain to captured app audio; it does not disable macOS ducking. Its effectiveness during FaceTime, and changes in level when a call ends, still require a live-call test on the target device. Return the app to 100% when the extra gain is no longer needed.
 
 The current engine mixes down to stereo, supports Float32 devices, and sends stereo to the first two output channels (or downmixes for a mono output). It is not a bit-perfect multichannel/pro-audio router. HDMI/DisplayPort hardware volume is often read-only, although individual app attenuation still works. DRM-protected or exclusive-device playback may not be capturable. Latency and CPU usage depend on the output device and number of adjusted apps.
 

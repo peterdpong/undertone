@@ -21,9 +21,25 @@ import Foundation
         precondition(SourceSettings.clampedVolume(-1) == 0)
         precondition(SourceSettings.clampedVolume(.nan) == 1)
         precondition(SourceSettings.clampedVolume(.infinity) == 1)
+        let nearUnity = SourceSettings(volume: 0.99586153)
+        precondition(nearUnity.gain == 1 && !nearUnity.needsMixing, "Displayed 100% must release the tap")
+        precondition(SourceSettings.clampedVolume(1.004) == 1)
+        precondition(SourceSettings.clampedVolume(0.99) == 0.99)
+        precondition(SourceSettings.clampedVolume(1.01) == 1.01)
+        for id in ["com.apple.FaceTime", "com.apple.avconferenced", "com.apple.callservicesd"] {
+            precondition(AudioMixingPolicy.isProtected(bundleID: id))
+            precondition(AudioMixingPolicy.sanitized([id: SourceSettings(volume: 2)]).isEmpty,
+                         "Old call preferences must never create taps")
+        }
+        precondition(AudioMixingPolicy.isProtected(bundleID: "pid.123", executableName: "avconferenced"),
+                     "Call helpers must be excluded before parent-app grouping")
+        precondition(AudioMixingPolicy.isProtected(bundleID: "some.responsible.app", executableName: "callservicesd"))
+        precondition(!AudioMixingPolicy.isProtected(bundleID: "company.thebrowser.Browser", executableName: "Arc Helper"))
+        let browser = ["company.thebrowser.Browser": SourceSettings(volume: 2, outputUID: "speakers")]
+        precondition(AudioMixingPolicy.sanitized(browser) == browser, "Browser boost and routing must stay available")
         let legacy = Data(#"{"volume":0.5,"muted":false}"#.utf8)
         let old = try JSONDecoder().decode(SourceSettings.self, from: legacy)
         precondition(old.volume == 0.5 && old.needsMixing)
-        print("PASS: boost activation, persistence, mute restoration, unity bypass, routing, bounds, legacy settings")
+        print("PASS: boost, persistence, mute, unity bypass, routing, bounds, legacy settings, call protection")
     }
 }
