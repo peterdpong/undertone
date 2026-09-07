@@ -14,6 +14,10 @@ import ServiceManagement
     var sourceErrors: [String: String] = [:]
     var loginEnabled = SMAppService.mainApp.status == .enabled
     var settings: [String: SourceSettings] = [:]
+    var presets = PresetLibrary().load()
+    var settingsTab = SettingsTab.presets
+    var selectedPresetID: UUID?
+    private var sourceNames = UserDefaults.standard.dictionary(forKey: "sourceNames") as? [String: String] ?? [:]
     @ObservationIgnored private var mixers: [String: ProcessMixer] = [:]
     @ObservationIgnored private var failedConfigurations: [String: String] = [:]
     @ObservationIgnored private var systemObservers: [AudioObservation] = []
@@ -59,6 +63,79 @@ import ServiceManagement
         sources.filter(\.isPlaying)
     }
     func preference(_ id: String) -> SourceSettings { settings[id] ?? SourceSettings() }
+
+    func snapshot() -> MixSnapshot {
+        var values = settings.filter { $0.value != SourceSettings() }
+        var names = sourceNames
+        for source in sources {
+            if source.isApplication && source.isPlaying { values[source.id] = preference(source.id) }
+            names[source.id] = source.name
+        }
+        return MixSnapshot(settings: values, names: names,
+                           output: output.map { PresetDevice(uid: $0.uid, name: $0.name, volume: outputVolume) },
+                           input: input.map { PresetDevice(uid: $0.uid, name: $0.name, volume: inputVolume) })
+    }
+
+    var currentPreset: MixPreset? {
+        let current = snapshot()
+        return presets.first { $0.mix.matches(current) }
+    }
+
+    @discardableResult func createPreset(name: String) -> MixPreset {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let preset = MixPreset(name: trimmed.isEmpty ? "New Preset" : trimmed, mix: snapshot())
+        presets.append(preset)
+        PresetLibrary().save(presets)
+        selectedPresetID = preset.id
+        return preset
+    }
+
+    func savePreset(_ preset: MixPreset) {
+        guard let index = presets.firstIndex(where: { $0.id == preset.id }) else { return }
+        var preset = preset
+        preset.name = preset.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !preset.name.isEmpty else { return }
+        presets[index] = preset
+        PresetLibrary().save(presets)
+    }
+
+    func deletePreset(_ id: UUID) {
+        presets.removeAll { $0.id == id }
+        if selectedPresetID == id { selectedPresetID = presets.first?.id }
+        PresetLibrary().save(presets)
+    }
+
+    func applyPreset(_ preset: MixPreset) {
+        // Replace the mix so boosts from a previous preset cannot leak into this one.
+        settings = preset.mix.apps.mapValues {
+            var value = $0
+            value.volume = SourceSettings.clampedVolume(value.volume)
+            return value
+        }
+        sourceNames.merge(preset.mix.names) { _, new in new }
+        persistSettings()
+        sourceErrors = [:]
+        failedConfigurations = [:]
+        var issues: [String] = []
+        for isInput in [false, true] {
+            guard let saved = isInput ? preset.mix.input : preset.mix.output else { continue }
+            guard let device = (isInput ? inputs : outputs).first(where: { $0.uid == saved.uid }) else {
+                issues.append("\(saved.name) is disconnected; kept the current \(isInput ? "input" : "output").")
+                continue
+            }
+            do {
+                try HAL.write(HAL.system, HAL.address(isInput ? kAudioHardwarePropertyDefaultInputDevice : kAudioHardwarePropertyDefaultOutputDevice), device.id)
+                if let volume = saved.volume { try device.setVolume(volume, input: isInput) }
+            } catch { issues.append(error.localizedDescription) }
+        }
+        errorMessage = issues.isEmpty ? nil : issues.joined(separator: "\n")
+        refresh()
+    }
+
+    private func persistSettings() {
+        if let data = try? JSONEncoder().encode(settings) { UserDefaults.standard.set(data, forKey: "sourceSettings") }
+        UserDefaults.standard.set(sourceNames, forKey: "sourceNames")
+    }
 
     func scheduleRefresh() {
         guard refreshTask == nil else { return }
@@ -114,8 +191,9 @@ import ServiceManagement
         change(&value)
         value.volume = SourceSettings.clampedVolume(value.volume)
         settings[id] = value
+        if let source = sources.first(where: { $0.id == id }) { sourceNames[id] = source.name }
         sourceErrors[id] = nil
-        if let data = try? JSONEncoder().encode(settings) { UserDefaults.standard.set(data, forKey: "sourceSettings") }
+        persistSettings()
         reconcile()
     }
     func reset() {

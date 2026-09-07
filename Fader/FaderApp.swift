@@ -40,6 +40,10 @@ import SwiftUI
                 .onAppear { delegate.model = model; model.refresh() }
         }
         .menuBarExtraStyle(.window)
+        Settings {
+            SettingsView(model: model)
+                .onAppear { delegate.model = model; model.refresh() }
+        }
     }
 }
 

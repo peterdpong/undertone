@@ -2,14 +2,32 @@ import SwiftUI
 
 struct MixerPopover: View {
     @Bindable var model: MixerModel
+    @Environment(\.openSettings) private var openSettings
+    @State private var savingPreset = false
+    @State private var presetName = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Fader").font(.headline)
+                Menu {
+                    ForEach(model.presets) { preset in
+                        Button { model.applyPreset(preset) } label: {
+                            if model.currentPreset?.id == preset.id {
+                                Label(preset.name, systemImage: "checkmark")
+                            } else { Text(preset.name) }
+                        }
+                    }
+                    if !model.presets.isEmpty { Divider() }
+                    Button("Save Current Mix…") { presetName = ""; savingPreset = true }
+                    Button("Manage Presets…") { showSettings(.presets) }
+                } label: {
+                    Text(model.currentPreset?.name ?? "Presets").font(.headline).lineLimit(1)
+                }
+                .menuStyle(.borderlessButton).fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel("Mix presets")
                 Spacer()
                 Menu {
-                    Toggle("Launch at Login", isOn: Binding(get: { model.loginEnabled }, set: { model.setLogin($0) }))
+                    Button("Settings…") { showSettings(.general) }.keyboardShortcut(",")
                     Button("Reset App Volumes and Outputs") { model.reset() }
                     Divider()
                     Button("Audio Access Settings…") { model.openAudioPrivacy() }
@@ -71,6 +89,18 @@ struct MixerPopover: View {
             }
         }
         .frame(width: 320)
+        .alert("Save Current Mix", isPresented: $savingPreset) {
+            TextField("Preset name", text: $presetName)
+            Button("Cancel", role: .cancel) { }
+            Button("Save") { model.createPreset(name: presetName) }
+                .disabled(presetName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+        }
+    }
+
+    private func showSettings(_ tab: SettingsTab) {
+        model.settingsTab = tab
+        openSettings()
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     private func deviceSection(input: Bool) -> some View {

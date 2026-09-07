@@ -10,9 +10,11 @@
 		01A75C8171047D2C04F081B7 /* ProcessMixer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A74C0DE2AADA8E66598CE3B /* ProcessMixer.swift */; };
 		347F6002A8ED6C08814662AB /* SourceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED46C363A47CA4C745F2B17 /* SourceSettings.swift */; };
 		38A208DB51059E078B823067 /* RenderKernel.c in Sources */ = {isa = PBXBuildFile; fileRef = E8293691679E8E8D54049D60 /* RenderKernel.c */; };
+		4ADE421004842CA6FE1720D4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959F9097DE379C4D0324A3BB /* SettingsView.swift */; };
 		83F5CCCE3243855C23E5C437 /* MixerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277F038672989D61B1FD3EE /* MixerModel.swift */; };
 		BF9C25CAD2CFF53A9FA6EF06 /* FaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FBF08DD1030450F64258E84 /* FaderApp.swift */; };
 		E58D88271B749C925D793DB8 /* MixerPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F4AB5E1C34D6FF3543BC40B /* MixerPopover.swift */; };
+		F319877FA26567DCA1EB537C /* MixPreset.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6323EEA6E8B07C0E47E9A8F8 /* MixPreset.swift */; };
 		F34AD59632D13660BF090A67 /* Fader.icns in Resources */ = {isa = PBXBuildFile; fileRef = 08105C6ADACAEDED1ADF3436 /* Fader.icns */; };
 		F74E45BC3DC15D47FB1A9D0B /* AudioHardware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B29EE75C2CB0D2B261CB61 /* AudioHardware.swift */; };
 /* End PBXBuildFile section */
@@ -24,8 +26,10 @@
 		3F4AB5E1C34D6FF3543BC40B /* MixerPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerPopover.swift; sourceTree = "<group>"; };
 		4825F4FFE10CE3E1A9C4B5A3 /* RenderKernel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RenderKernel.h; sourceTree = "<group>"; };
 		6277F038672989D61B1FD3EE /* MixerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerModel.swift; sourceTree = "<group>"; };
+		6323EEA6E8B07C0E47E9A8F8 /* MixPreset.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixPreset.swift; sourceTree = "<group>"; };
 		7ED46C363A47CA4C745F2B17 /* SourceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSettings.swift; sourceTree = "<group>"; };
 		919DE8846F1DA3B8CC1DBEA1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		959F9097DE379C4D0324A3BB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9A74C0DE2AADA8E66598CE3B /* ProcessMixer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMixer.swift; sourceTree = "<group>"; };
 		AC66662A3ACCD94B7A7FBC01 /* Fader-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Fader-Bridging-Header.h"; sourceTree = "<group>"; };
 		D70CD5AA03F4F4B745F2D905 /* Fader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fader.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -38,6 +42,7 @@
 			children = (
 				1FBF08DD1030450F64258E84 /* FaderApp.swift */,
 				6277F038672989D61B1FD3EE /* MixerModel.swift */,
+				6323EEA6E8B07C0E47E9A8F8 /* MixPreset.swift */,
 				7ED46C363A47CA4C745F2B17 /* SourceSettings.swift */,
 				CFB2EE01E95A477E2CF722A6 /* Audio */,
 				F73613665DBD3FFDF49150CA /* Resources */,
@@ -58,6 +63,7 @@
 			isa = PBXGroup;
 			children = (
 				3F4AB5E1C34D6FF3543BC40B /* MixerPopover.swift */,
+				959F9097DE379C4D0324A3BB /* SettingsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -163,10 +169,12 @@
 			files = (
 				F74E45BC3DC15D47FB1A9D0B /* AudioHardware.swift in Sources */,
 				BF9C25CAD2CFF53A9FA6EF06 /* FaderApp.swift in Sources */,
+				F319877FA26567DCA1EB537C /* MixPreset.swift in Sources */,
 				83F5CCCE3243855C23E5C437 /* MixerModel.swift in Sources */,
 				E58D88271B749C925D793DB8 /* MixerPopover.swift in Sources */,
 				01A75C8171047D2C04F081B7 /* ProcessMixer.swift in Sources */,
 				38A208DB51059E078B823067 /* RenderKernel.c in Sources */,
+				4ADE421004842CA6FE1720D4 /* SettingsView.swift in Sources */,
 				347F6002A8ED6C08814662AB /* SourceSettings.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
