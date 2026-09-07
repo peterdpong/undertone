@@ -1,0 +1,30 @@
+name: Fader
+options:
+  bundleIdPrefix: com.peterdpong
+  deploymentTarget:
+    macOS: "14.2"
+settings:
+  base:
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "6.0"
+    SWIFT_STRICT_CONCURRENCY: complete
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+targets:
+  Fader:
+    type: application
+    platform: macOS
+    sources: [Fader]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.peterdpong.fader
+        INFOPLIST_FILE: Fader/Resources/Info.plist
+        SWIFT_OBJC_BRIDGING_HEADER: Fader/Audio/Fader-Bridging-Header.h
+        ENABLE_HARDENED_RUNTIME: true
+        ENABLE_APP_SANDBOX: false
+schemes:
+  Fader:
+    build:
+      targets:
+        Fader: all

@@ -83,6 +83,20 @@ struct AudioDevice: Identifiable, Equatable {
     let name: String
     let inputChannels: UInt32
     let outputChannels: UInt32
+    let transportType: UInt32
+
+    var outputSymbol: String {
+        let name = name.lowercased()
+        if name.contains("airpods max") { return "airpodsmax" }
+        if name.contains("airpods pro") { return "airpodspro" }
+        if name.contains("airpods") { return "airpods" }
+        if ["headphone", "headset", "earbud", "beats"].contains(where: name.contains) { return "headphones" }
+        switch transportType {
+        case kAudioDeviceTransportTypeHDMI, kAudioDeviceTransportTypeDisplayPort: return "display"
+        case kAudioDeviceTransportTypeAirPlay: return "airplayaudio"
+        default: return "hifispeaker"
+        }
+    }
     var sampleRate: Double {
         (try? HAL.read(id, HAL.address(kAudioDevicePropertyNominalSampleRate), default: Double(0))) ?? 0
     }
@@ -92,7 +106,8 @@ struct AudioDevice: Identifiable, Equatable {
             guard let uid = HAL.string(id, kAudioDevicePropertyDeviceUID), !uid.hasPrefix("com.peterdpong.fader.") else { return nil }
             return AudioDevice(id: id, uid: uid, name: HAL.string(id, kAudioObjectPropertyName) ?? "Audio device",
                                inputChannels: HAL.channels(id, scope: kAudioDevicePropertyScopeInput),
-                               outputChannels: HAL.channels(id, scope: kAudioDevicePropertyScopeOutput))
+                               outputChannels: HAL.channels(id, scope: kAudioDevicePropertyScopeOutput),
+                               transportType: (try? HAL.read(id, HAL.address(kAudioDevicePropertyTransportType), default: UInt32(0))) ?? 0)
         }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
     func volumeAddresses(input: Bool) -> [AudioObjectPropertyAddress] {

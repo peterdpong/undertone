@@ -1,0 +1,366 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		01A75C8171047D2C04F081B7 /* ProcessMixer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A74C0DE2AADA8E66598CE3B /* ProcessMixer.swift */; };
+		347F6002A8ED6C08814662AB /* SourceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED46C363A47CA4C745F2B17 /* SourceSettings.swift */; };
+		38A208DB51059E078B823067 /* RenderKernel.c in Sources */ = {isa = PBXBuildFile; fileRef = E8293691679E8E8D54049D60 /* RenderKernel.c */; };
+		83F5CCCE3243855C23E5C437 /* MixerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277F038672989D61B1FD3EE /* MixerModel.swift */; };
+		BF9C25CAD2CFF53A9FA6EF06 /* FaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FBF08DD1030450F64258E84 /* FaderApp.swift */; };
+		E58D88271B749C925D793DB8 /* MixerPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F4AB5E1C34D6FF3543BC40B /* MixerPopover.swift */; };
+		F34AD59632D13660BF090A67 /* Fader.icns in Resources */ = {isa = PBXBuildFile; fileRef = 08105C6ADACAEDED1ADF3436 /* Fader.icns */; };
+		F74E45BC3DC15D47FB1A9D0B /* AudioHardware.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03B29EE75C2CB0D2B261CB61 /* AudioHardware.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		03B29EE75C2CB0D2B261CB61 /* AudioHardware.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AudioHardware.swift; sourceTree = "<group>"; };
+		08105C6ADACAEDED1ADF3436 /* Fader.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = Fader.icns; sourceTree = "<group>"; };
+		1FBF08DD1030450F64258E84 /* FaderApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaderApp.swift; sourceTree = "<group>"; };
+		3F4AB5E1C34D6FF3543BC40B /* MixerPopover.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerPopover.swift; sourceTree = "<group>"; };
+		4825F4FFE10CE3E1A9C4B5A3 /* RenderKernel.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = RenderKernel.h; sourceTree = "<group>"; };
+		6277F038672989D61B1FD3EE /* MixerModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MixerModel.swift; sourceTree = "<group>"; };
+		7ED46C363A47CA4C745F2B17 /* SourceSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SourceSettings.swift; sourceTree = "<group>"; };
+		919DE8846F1DA3B8CC1DBEA1 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		9A74C0DE2AADA8E66598CE3B /* ProcessMixer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMixer.swift; sourceTree = "<group>"; };
+		AC66662A3ACCD94B7A7FBC01 /* Fader-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Fader-Bridging-Header.h"; sourceTree = "<group>"; };
+		D70CD5AA03F4F4B745F2D905 /* Fader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fader.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E8293691679E8E8D54049D60 /* RenderKernel.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = RenderKernel.c; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		3A7CBCA8692D1D6F4EB3F920 /* Fader */ = {
+			isa = PBXGroup;
+			children = (
+				1FBF08DD1030450F64258E84 /* FaderApp.swift */,
+				6277F038672989D61B1FD3EE /* MixerModel.swift */,
+				7ED46C363A47CA4C745F2B17 /* SourceSettings.swift */,
+				CFB2EE01E95A477E2CF722A6 /* Audio */,
+				F73613665DBD3FFDF49150CA /* Resources */,
+				6F86F9401CCB559915404DC8 /* Views */,
+			);
+			path = Fader;
+			sourceTree = "<group>";
+		};
+		4534AC129B4969435E4DDC2A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				D70CD5AA03F4F4B745F2D905 /* Fader.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6F86F9401CCB559915404DC8 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				3F4AB5E1C34D6FF3543BC40B /* MixerPopover.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		CFB2EE01E95A477E2CF722A6 /* Audio */ = {
+			isa = PBXGroup;
+			children = (
+				03B29EE75C2CB0D2B261CB61 /* AudioHardware.swift */,
+				AC66662A3ACCD94B7A7FBC01 /* Fader-Bridging-Header.h */,
+				9A74C0DE2AADA8E66598CE3B /* ProcessMixer.swift */,
+				E8293691679E8E8D54049D60 /* RenderKernel.c */,
+				4825F4FFE10CE3E1A9C4B5A3 /* RenderKernel.h */,
+			);
+			path = Audio;
+			sourceTree = "<group>";
+		};
+		F73613665DBD3FFDF49150CA /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				08105C6ADACAEDED1ADF3436 /* Fader.icns */,
+				919DE8846F1DA3B8CC1DBEA1 /* Info.plist */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		FB4F61E0929FFD8BE891AE64 = {
+			isa = PBXGroup;
+			children = (
+				3A7CBCA8692D1D6F4EB3F920 /* Fader */,
+				4534AC129B4969435E4DDC2A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		D1E7D2647C3B8626D11EDB09 /* Fader */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 81AA70AA6DBCB5841A7613DE /* Build configuration list for PBXNativeTarget "Fader" */;
+			buildPhases = (
+				37E7AA660F8C36ED72662E73 /* Sources */,
+				578567F8678009F8A17691F9 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Fader;
+			packageProductDependencies = (
+			);
+			productName = Fader;
+			productReference = D70CD5AA03F4F4B745F2D905 /* Fader.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		8DEBF0C286BE8BBA2E51C9EA /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					D1E7D2647C3B8626D11EDB09 = {
+						ProvisioningStyle = Manual;
+					};
+				};
+			};
+			buildConfigurationList = 2497EEE39760838D52079795 /* Build configuration list for PBXProject "Fader" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = FB4F61E0929FFD8BE891AE64;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4534AC129B4969435E4DDC2A /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				D1E7D2647C3B8626D11EDB09 /* Fader */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		578567F8678009F8A17691F9 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F34AD59632D13660BF090A67 /* Fader.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		37E7AA660F8C36ED72662E73 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F74E45BC3DC15D47FB1A9D0B /* AudioHardware.swift in Sources */,
+				BF9C25CAD2CFF53A9FA6EF06 /* FaderApp.swift in Sources */,
+				83F5CCCE3243855C23E5C437 /* MixerModel.swift in Sources */,
+				E58D88271B749C925D793DB8 /* MixerPopover.swift in Sources */,
+				01A75C8171047D2C04F081B7 /* ProcessMixer.swift in Sources */,
+				38A208DB51059E078B823067 /* RenderKernel.c in Sources */,
+				347F6002A8ED6C08814662AB /* SourceSettings.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		0A924775D073DCE7762BB88D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Fader/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.peterdpong.fader;
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Fader/Audio/Fader-Bridging-Header.h";
+			};
+			name = Release;
+		};
+		0E49DC7FA3289F3771E9A5A4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		4117FA20EA6B0F4621824703 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_APP_SANDBOX = NO;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = Fader/Resources/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.peterdpong.fader;
+				SDKROOT = macosx;
+				SWIFT_OBJC_BRIDGING_HEADER = "Fader/Audio/Fader-Bridging-Header.h";
+			};
+			name = Debug;
+		};
+		CD5D9CCE764CD0252585ED0A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_STRICT_CONCURRENCY = complete;
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		2497EEE39760838D52079795 /* Build configuration list for PBXProject "Fader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				0E49DC7FA3289F3771E9A5A4 /* Debug */,
+				CD5D9CCE764CD0252585ED0A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		81AA70AA6DBCB5841A7613DE /* Build configuration list for PBXNativeTarget "Fader" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				4117FA20EA6B0F4621824703 /* Debug */,
+				0A924775D073DCE7762BB88D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 8DEBF0C286BE8BBA2E51C9EA /* Project object */;
+}
