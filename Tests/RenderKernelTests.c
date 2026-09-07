@@ -3,9 +3,89 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <float.h>
 
 typedef struct { UInt32 count; AudioBuffer buffers[3]; } Buffers;
 static void near(float actual, float expected) { assert(fabsf(actual - expected) < 0.00001f); }
+
+static void testBoost(void) {
+    float quiet[] = {.125, -.0625, .125, -.0625};
+    float out[4];
+    Buffers in = {1, {{2, sizeof(quiet), quiet}}};
+    Buffers output = {1, {{2, sizeof(out), out}}};
+    FaderRenderState *s = FaderRenderCreate(4, 0);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[0], .5); near(out[1], -.25); near(out[2], .5); near(out[3], -.25);
+    FaderRenderDestroy(s);
+
+    // Changing gain above unity must work after creation, with a smooth ramp.
+    s = FaderRenderCreate(1, 0);
+    FaderRenderSetGain(s, 2);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[0], .1875); near(out[1], -.09375); near(out[2], .25); near(out[3], -.125);
+    FaderRenderSetGain(s, 0);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[2], 0); near(out[3], 0);
+    FaderRenderSetGain(s, 4);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[2], .5); near(out[3], -.25);
+    FaderRenderDestroy(s);
+
+    // Hot signals stay in range and the linked limiter preserves stereo balance.
+    float loud[] = {.8, -.4, -.8, .4};
+    in.buffers[0].mData = loud;
+    s = FaderRenderCreate(4, 0);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[0], .995833333); near(out[0], -2 * out[1]);
+    near(out[2], -out[0]); near(out[3], -out[1]);
+    for (int i = 0; i < 4; i++) assert(fabsf(out[i]) <= 1);
+    FaderRenderDestroy(s);
+
+    // Unity keeps the original waveform, including peaks above the soft knee.
+    float original[] = {.99, -.99, 1, -1};
+    in.buffers[0].mData = original;
+    s = FaderRenderCreate(1, 0);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    for (int i = 0; i < 4; i++) near(out[i], original[i]);
+    FaderRenderDestroy(s);
+
+    // Entering boost must never reduce a valid signal's peaks below unity.
+    float high[] = {.99, -.495, .95, -.475};
+    in.buffers[0].mData = high;
+    float previous = high[0];
+    for (int percent = 100; percent <= 400; percent++) {
+        s = FaderRenderCreate(percent / 100.0f, 0);
+        FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+        assert(out[0] >= previous - 0.00001f && out[0] <= 1);
+        near(out[0], -2 * out[1]);
+        assert(out[2] >= high[2] - 0.00001f);
+        previous = out[0];
+        FaderRenderDestroy(s);
+    }
+
+    // Constructor and updates enforce the same gain ceiling; invalid gain mutes.
+    in.buffers[0].mData = quiet;
+    s = FaderRenderCreate(99, 0);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[0], .5);
+    FaderRenderSetGain(s, 99);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[2], .5);
+    FaderRenderDestroy(s);
+    s = FaderRenderCreate(NAN, 0);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    for (int i = 0; i < 4; i++) near(out[i], 0);
+    FaderRenderDestroy(s);
+
+    // Hostile samples cannot contaminate the output with NaN or infinity.
+    float invalid[] = {NAN, INFINITY, FLT_MAX, -FLT_MAX};
+    in.buffers[0].mData = invalid;
+    s = FaderRenderCreate(4, 0);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[0], 0); near(out[1], 0);
+    for (int i = 0; i < 4; i++) assert(isfinite(out[i]) && fabsf(out[i]) <= 1);
+    FaderRenderDestroy(s);
+}
 
 int main(void) {
     float stereo[] = { 0.8, -0.4, 0.2, -0.6 };
@@ -70,6 +150,7 @@ int main(void) {
     for (int i = 2; i < 256; i++) assert(ramp[i] <= ramp[i - 2]);
     near(ramp[254], .25); near(ramp[255], .25);
     FaderRenderDestroy(s);
-    puts("PASS: gain, stereo layouts, microphone exclusion, mono, mute, smoothing, truncation, null buffers, nonfinite gain");
+    testBoost();
+    puts("PASS: gain, layouts, microphone exclusion, mono, mute, ramps, buffer bounds, boost, linked peak limiting, nonfinite values");
     return 0;
 }

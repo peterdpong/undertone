@@ -1,7 +1,7 @@
 import Foundation
 
 struct SourceSettings: Codable, Equatable {
-    static let maximumVolume: Float = 1
+    static let maximumVolume = FaderMaximumGain
 
     var volume: Float = 1
     var muted = false

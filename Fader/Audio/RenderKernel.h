@@ -2,6 +2,8 @@
 #include <CoreAudio/CoreAudio.h>
 #include <stdbool.h>
 
+static const float FaderMaximumGain = 4.0f;
+
 typedef struct FaderRenderState FaderRenderState;
 FaderRenderState *FaderRenderCreate(float gain, unsigned inputChannelOffset);
 void FaderRenderDestroy(FaderRenderState *state);

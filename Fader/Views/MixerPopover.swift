@@ -167,14 +167,16 @@ private struct SourceRow: View {
                     .opacity(setting.muted ? 0.4 : 1)
                     .accessibilityLabel("\(source.name) volume")
                     .accessibilityValue(setting.muted ? "Muted" : setting.volume.formatted(.percent.precision(.fractionLength(0))))
-                    .help("Adjust \(source.name) from 0% to 100%")
+                    .help("Adjust \(source.name) from 0% to 400%")
 
                 Text(setting.muted ? "Mute" : setting.volume.formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption).monospacedDigit()
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(setting.volume > 1 && !setting.muted ? Color.accentColor : .secondary)
                     .frame(width: 34, alignment: .trailing)
                     .contextMenu {
                         Button("Volume: 100%") { model.update(source.id) { $0.volume = 1; $0.muted = false } }
+                        Button("Volume: 200%") { model.update(source.id) { $0.volume = 2; $0.muted = false } }
+                        Button("Volume: 400%") { model.update(source.id) { $0.volume = SourceSettings.maximumVolume; $0.muted = false } }
                     }
             }
             if let error = model.sourceErrors[source.id] {
