@@ -59,7 +59,8 @@ import Foundation
                           format.mFormatFlags & kAudioFormatFlagIsBigEndian == 0 else { throw unsupportedFormat() }
                 }
             }
-            guard let state = FaderRenderCreate(gain, inputChannels - 2) else { throw unsupportedFormat() }
+            let renderRate = try HAL.read(aggregate, HAL.address(kAudioDevicePropertyNominalSampleRate), default: Double(0))
+            guard let state = FaderRenderCreate(gain, inputChannels - 2, renderRate) else { throw unsupportedFormat() }
             renderState = state
             try HAL.check(FaderCreateIOProc(aggregate, state, &ioProc), "Connecting app audio")
             try HAL.check(AudioDeviceStart(aggregate, ioProc), "Starting app audio; allow Fader in System Settings → Privacy & Security → Screen & System Audio Recording")

@@ -10,13 +10,18 @@ struct FaderRenderState {
     _Atomic(float) targetGain;
     float currentGain;
     unsigned inputChannelOffset;
+    double gainCeiling;
+    double releaseStep;
+    unsigned holdFrames;
+    unsigned holdRemaining;
 };
 
 static float clampedGain(float gain) {
     return isfinite(gain) ? fminf(FaderMaximumGain, fmaxf(0, gain)) : 0;
 }
 
-FaderRenderState *FaderRenderCreate(float gain, unsigned offset) {
+FaderRenderState *FaderRenderCreate(float gain, unsigned offset, double sampleRate) {
+    if (!isfinite(sampleRate) || sampleRate < 8000 || sampleRate > 768000) return NULL;
     FaderRenderState *s = calloc(1, sizeof(*s));
     if (!s) return NULL;
     gain = clampedGain(gain);
@@ -25,6 +30,9 @@ FaderRenderState *FaderRenderCreate(float gain, unsigned offset) {
                    "Fader needs lock-free atomics on the target architecture");
     s->currentGain = gain;
     s->inputChannelOffset = offset;
+    s->gainCeiling = FaderMaximumGain;
+    s->holdFrames = (unsigned)ceil(sampleRate * 0.05);
+    s->releaseStep = -expm1(-1 / (sampleRate * 0.12));
     return s;
 }
 void FaderRenderDestroy(FaderRenderState *s) { free(s); }
@@ -71,24 +79,26 @@ void FaderRender(const AudioBufferList *input, AudioBufferList *output, FaderRen
     float step = ramp ? (target - gain) / ramp : 0;
     for (unsigned f = 0; f < frames; ++f) {
         if (f < ramp) gain += step;
-        // Double intermediates keep even oversized finite Float32 input from
-        // overflowing before peak protection. Ordinary quiet audio is linear.
+        // Track a stereo-linked gain ceiling instead of reshaping each peak.
+        // Hold for 50 ms so the limiter does not recover between waveform cycles,
+        // then release with a 120 ms time constant. Attack is immediate: this
+        // needs no lookahead, extra buffers, or added latency.
         double dryA = sample(left, l, f), dryB = sample(right, r, f);
-        double a = dryA * (double)gain, b = dryB * (double)gain;
-        if (gain > 1) {
-            double peak = fmax(fabs(a), fabs(b));
-            if (peak > 0.9) {
-                // Soft knee, asymptotically approaching full scale. Link both
-                // channels to preserve the stereo image; no lookahead latency.
-                double excess = peak - 0.9;
-                double ceiling = 0.9 + 0.1 * (excess / (excess + 0.1));
-                // Entering boost must not make an already-loud source quieter.
-                ceiling = fmax(ceiling, fmin(1, fmax(fabs(dryA), fabs(dryB))));
-                double reduction = ceiling / peak;
-                a *= reduction;
-                b *= reduction;
-            }
+        double peak = fmax(fabs(dryA), fabs(dryB));
+        double ceiling = peak > 1.0 / FaderMaximumGain ? 1 / peak : FaderMaximumGain;
+        if (ceiling <= s->gainCeiling) {
+            s->gainCeiling = ceiling;
+            s->holdRemaining = s->holdFrames;
+        } else if (s->holdRemaining) {
+            s->holdRemaining--;
+        } else {
+            s->gainCeiling += (ceiling - s->gainCeiling) * s->releaseStep;
         }
+        // Valid full-scale input always has a ceiling >= 1, so 100% and
+        // attenuation remain transparent. Double products also bound oversized
+        // finite input before it can overflow a Float32 output.
+        double appliedGain = fmin((double)gain, s->gainCeiling);
+        double a = dryA * appliedGain, b = dryB * appliedGain;
         unsigned global = 0;
         for (unsigned i = 0; i < output->mNumberBuffers; ++i) {
             AudioBuffer *out = &output->mBuffers[i];
