@@ -18,6 +18,7 @@ import ServiceManagement
     var selectedPresetID: UUID?
     private var sourceNames = UserDefaults.standard.dictionary(forKey: "sourceNames") as? [String: String] ?? [:]
     @ObservationIgnored private var mixers: [String: ProcessMixer] = [:]
+    @ObservationIgnored private var bypassTasks: [String: Task<Void, Never>] = [:]
     @ObservationIgnored private var failedConfigurations: [String: String] = [:]
     @ObservationIgnored private var systemObservers: [AudioObservation] = []
     @ObservationIgnored private var processObservers: [AudioObservation] = []
@@ -59,6 +60,16 @@ import ServiceManagement
     var output: AudioDevice? { devices.first { $0.id == outputID } }
     func preference(_ id: String) -> SourceSettings {
         AudioMixingPolicy.isProtected(bundleID: id) ? SourceSettings() : settings[id] ?? SourceSettings()
+    }
+
+    var loudnessAppIDs: [String] {
+        Set(sources.filter(\.isApplication).map(\.id))
+            .union(visibleSources.map(\.id)).union(settings.keys)
+            .filter { !AudioMixingPolicy.isProtected(bundleID: $0) }
+            .sorted { sourceName($0).localizedStandardCompare(sourceName($1)) == .orderedAscending }
+    }
+    func sourceName(_ id: String) -> String {
+        sources.first { $0.id == id }?.name ?? sourceNames[id] ?? id
     }
 
     func snapshot() -> MixSnapshot {
@@ -220,9 +231,28 @@ import ServiceManagement
         guard !sleeping else { stopMixers(); return }
         let desired = Set(sources.filter { preference($0.id).needsMixing && $0.isPlaying }.map(\.id))
         for id in Array(mixers.keys) where !desired.contains(id) {
-            mixers.removeValue(forKey: id)?.stop()
+            if let mixer = mixers[id], mixer.outputUID == output?.uid,
+               let source = sources.first(where: { $0.id == id && $0.isPlaying }),
+               mixer.processes == source.processes.sorted() {
+                // Finish a smooth return to unity before restoring direct audio.
+                // This is a one-shot handoff, not a polling timer.
+                mixer.update(preference(id))
+                if bypassTasks[id] == nil {
+                    bypassTasks[id] = Task { [weak self, weak mixer] in
+                        try? await Task.sleep(for: .milliseconds(450))
+                        guard !Task.isCancelled, let self, let mixer,
+                              !self.preference(id).needsMixing, self.mixers[id] === mixer else { return }
+                        self.mixers.removeValue(forKey: id)?.stop()
+                        self.bypassTasks[id] = nil
+                    }
+                }
+            } else {
+                bypassTasks.removeValue(forKey: id)?.cancel()
+                mixers.removeValue(forKey: id)?.stop()
+            }
         }
         for source in sources where desired.contains(source.id) {
+            bypassTasks.removeValue(forKey: source.id)?.cancel()
             let value = preference(source.id)
             // An unplugged chosen output falls back to the current system output.
             guard let target = outputs.first(where: { $0.uid == value.outputUID }) ?? output else {
@@ -231,14 +261,14 @@ import ServiceManagement
             }
             if let mixer = mixers[source.id], mixer.processes == source.processes.sorted(),
                mixer.outputUID == target.uid, mixer.sampleRate == target.sampleRate {
-                mixer.setGain(value.gain)
+                mixer.update(value)
                 continue
             }
             mixers.removeValue(forKey: source.id)?.stop()
             let configuration = "\(source.processes.sorted())|\(target.uid)|\(target.sampleRate)"
             guard sourceErrors[source.id] == nil || failedConfigurations[source.id] != configuration else { continue }
             do {
-                mixers[source.id] = try ProcessMixer(source: source, output: target, gain: value.gain)
+                mixers[source.id] = try ProcessMixer(source: source, output: target, settings: value)
                 sourceErrors[source.id] = nil
                 failedConfigurations[source.id] = nil
             } catch {
@@ -248,6 +278,8 @@ import ServiceManagement
         }
     }
     private func stopMixers() {
+        for task in bypassTasks.values { task.cancel() }
+        bypassTasks = [:]
         for mixer in mixers.values { mixer.stop() }
         mixers = [:]
     }

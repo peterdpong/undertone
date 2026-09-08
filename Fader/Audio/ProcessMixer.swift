@@ -12,17 +12,17 @@ import Foundation
     private var ioProc: AudioDeviceIOProcID?
     private var renderState: OpaquePointer?
 
-    init(source: AudioSource, output: AudioDevice, gain: Float) throws {
+    init(source: AudioSource, output: AudioDevice, settings: SourceSettings) throws {
         guard !AudioMixingPolicy.isProtected(bundleID: source.id) else {
             throw AudioFailure(operation: "Call audio must stay on the macOS audio path", status: kAudioHardwareUnsupportedOperationError)
         }
         processes = source.processes.sorted()
         outputUID = output.uid
         sampleRate = output.sampleRate
-        try start(name: source.name, output: output, gain: gain)
+        try start(name: source.name, output: output, settings: settings)
     }
 
-    private func start(name: String, output: AudioDevice, gain: Float) throws {
+    private func start(name: String, output: AudioDevice, settings: SourceSettings) throws {
         do {
             let description = CATapDescription(stereoMixdownOfProcesses: processes)
             description.name = "Fader · \(name)"
@@ -60,8 +60,9 @@ import Foundation
                 }
             }
             let renderRate = try HAL.read(aggregate, HAL.address(kAudioDevicePropertyNominalSampleRate), default: Double(0))
-            guard let state = FaderRenderCreate(gain, inputChannels - 2, renderRate) else { throw unsupportedFormat() }
+            guard let state = FaderRenderCreate(settings.gain, inputChannels - 2, renderRate) else { throw unsupportedFormat() }
             renderState = state
+            FaderRenderSetLoudnessEqualization(state, settings.loudnessEqualization)
             try HAL.check(FaderCreateIOProc(aggregate, state, &ioProc), "Connecting app audio")
             try HAL.check(AudioDeviceStart(aggregate, ioProc), "Starting app audio; allow Fader in System Settings → Privacy & Security → Screen & System Audio Recording")
         } catch {
@@ -69,7 +70,12 @@ import Foundation
             throw error
         }
     }
-    func setGain(_ value: Float) { if let renderState { FaderRenderSetGain(renderState, value) } }
+    func update(_ settings: SourceSettings) {
+        if let renderState {
+            FaderRenderSetGain(renderState, settings.gain)
+            FaderRenderSetLoudnessEqualization(renderState, settings.loudnessEqualization)
+        }
+    }
     func stop() {
         if let ioProc {
             AudioDeviceStop(aggregate, ioProc)

@@ -9,8 +9,10 @@ run: build
 	open build/Build/Products/Debug/Fader.app
 test:
 	mkdir -p build
-	xcrun clang -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g -I Fader/Audio Fader/Audio/RenderKernel.c Tests/RenderKernelTests.c -framework CoreAudio -o build/render-tests
+	xcrun clang -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g -I Fader/Audio Fader/Audio/RenderKernel.c Fader/Audio/LoudnessLeveler.c Tests/RenderKernelTests.c -framework CoreAudio -o build/render-tests
 	./build/render-tests
+	xcrun clang -std=c11 -Wall -Wextra -Werror -fsanitize=address,undefined -g -I Fader/Audio Fader/Audio/RenderKernel.c Fader/Audio/LoudnessLeveler.c Tests/LoudnessTests.c -framework CoreAudio -o build/loudness-tests
+	./build/loudness-tests
 	xcrun swiftc -swift-version 6 -module-cache-path build/test-module-cache -import-objc-header Fader/Audio/Fader-Bridging-Header.h Fader/SourceSettings.swift Tests/SourceSettingsTests.swift -o build/settings-tests
 	./build/settings-tests
 	xcrun swiftc -swift-version 6 -module-cache-path build/test-module-cache -import-objc-header Fader/Audio/Fader-Bridging-Header.h Fader/SourceSettings.swift Fader/MixPreset.swift Tests/PresetTests.swift -o build/preset-tests

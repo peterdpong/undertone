@@ -28,7 +28,7 @@ struct MixerPopover: View {
                 Spacer()
                 Menu {
                     Button("Settings…") { showSettings(.general) }.keyboardShortcut(",")
-                    Button("Reset App Volumes and Outputs") { model.reset() }
+                    Button("Reset App Audio Settings") { model.reset() }
                     Divider()
                     Button("Audio Access Settings…") { model.openAudioPrivacy() }
                     Button("Sound Settings…") {
@@ -147,6 +147,11 @@ private struct SourceRow: View {
                     else { Image(systemName: "app.dashed").resizable() }
                 }.frame(width: 20, height: 20).accessibilityHidden(true)
                 Text(source.name).lineLimit(1)
+                if setting.loudnessEqualization {
+                    Image(systemName: "waveform.path").foregroundStyle(.secondary)
+                        .help("Loudness Equalization enabled")
+                        .accessibilityLabel("Loudness Equalization enabled")
+                }
                 Spacer(minLength: 4)
                 Menu {
                     Picker("Output", selection: Binding(get: { setting.outputUID ?? "" }, set: { uid in
@@ -208,6 +213,11 @@ private struct SourceRow: View {
                     .foregroundStyle(.primary)
                     .frame(width: 34, alignment: .trailing)
                     .contextMenu {
+                        Toggle("Loudness Equalization", isOn: Binding(
+                            get: { setting.loudnessEqualization },
+                            set: { enabled in model.update(source.id) { $0.loudnessEqualization = enabled } }
+                        ))
+                        Divider()
                         ForEach(Self.volumeSnapPoints, id: \.self) { percent in
                             Button("Volume: \(percent)%") { model.update(source.id) { $0.volume = Float(percent) / 100; $0.muted = false } }
                         }

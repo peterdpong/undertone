@@ -12,6 +12,22 @@ struct SettingsView: View {
                 LabeledContent("Audio access") {
                     Button("Open System Settings…") { model.openAudioPrivacy() }
                 }
+                Section {
+                    if model.loudnessAppIDs.isEmpty {
+                        Text("Play audio in an app to add it here.").foregroundStyle(.secondary)
+                    }
+                    ForEach(model.loudnessAppIDs, id: \.self) { id in
+                        Toggle(model.sourceName(id), isOn: Binding(
+                            get: { model.preference(id).loudnessEqualization },
+                            set: { enabled in model.update(id) { $0.loudnessEqualization = enabled } }
+                        ))
+                        .accessibilityLabel("\(model.sourceName(id)) loudness equalization")
+                    }
+                } header: {
+                    Text("Loudness Equalization")
+                } footer: {
+                    Text("Even out quiet and loud passages with automatic volume adjustment. Saved with your presets.")
+                }
             }
             .formStyle(.grouped)
             .tabItem { Label("General", systemImage: "gearshape") }.tag(SettingsTab.general)
@@ -99,6 +115,11 @@ private struct PresetDetail: View {
                                         appIcon(id).frame(width: 20, height: 20).accessibilityHidden(true)
                                         Text(draft.mix.names[id] ?? id).lineLimit(1)
                                         Spacer(minLength: 4)
+                                        if value.loudnessEqualization {
+                                            Image(systemName: "waveform.path")
+                                                .help("Loudness Equalization enabled")
+                                                .accessibilityLabel("Loudness Equalization enabled")
+                                        }
                                         if value.outputUID != nil {
                                             Image(systemName: "arrow.triangle.branch")
                                                 .help(model.outputs.first { $0.uid == value.outputUID }?.name ?? "Saved output (disconnected)")

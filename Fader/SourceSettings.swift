@@ -6,6 +6,23 @@ struct SourceSettings: Codable, Equatable {
     var volume: Float = 1
     var muted = false
     var outputUID: String? = nil
+    var loudnessEqualization = false
+
+    init(volume: Float = 1, muted: Bool = false, outputUID: String? = nil, loudnessEqualization: Bool = false) {
+        self.volume = volume
+        self.muted = muted
+        self.outputUID = outputUID
+        self.loudnessEqualization = loudnessEqualization
+    }
+
+    private enum CodingKeys: String, CodingKey { case volume, muted, outputUID, loudnessEqualization }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        volume = try values.decodeIfPresent(Float.self, forKey: .volume) ?? 1
+        muted = try values.decodeIfPresent(Bool.self, forKey: .muted) ?? false
+        outputUID = try values.decodeIfPresent(String.self, forKey: .outputUID)
+        loudnessEqualization = try values.decodeIfPresent(Bool.self, forKey: .loudnessEqualization) ?? false
+    }
 
     static func clampedVolume(_ value: Float) -> Float {
         let clamped = value.isFinite ? min(maximumVolume, max(0, value)) : 1
@@ -13,7 +30,7 @@ struct SourceSettings: Codable, Equatable {
         return abs(clamped - 1) < 0.005 ? 1 : clamped
     }
     var gain: Float { muted ? 0 : Self.clampedVolume(volume) }
-    var needsMixing: Bool { gain != 1 || outputUID != nil }
+    var needsMixing: Bool { gain != 1 || outputUID != nil || loudnessEqualization }
 }
 
 enum AudioMixingPolicy {

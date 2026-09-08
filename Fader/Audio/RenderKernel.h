@@ -8,6 +8,7 @@ typedef struct FaderRenderState FaderRenderState;
 FaderRenderState *FaderRenderCreate(float gain, unsigned inputChannelOffset, double sampleRate);
 void FaderRenderDestroy(FaderRenderState *state);
 void FaderRenderSetGain(FaderRenderState *state, float gain);
+void FaderRenderSetLoudnessEqualization(FaderRenderState *state, bool enabled);
 void FaderRender(const AudioBufferList *input, AudioBufferList *output, FaderRenderState *state);
 OSStatus FaderCreateIOProc(AudioObjectID device, FaderRenderState *state, AudioDeviceIOProcID *ioProc);
 OSStatus FaderIOProc(AudioObjectID device, const AudioTimeStamp *now,

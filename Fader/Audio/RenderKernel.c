@@ -1,4 +1,5 @@
 #include "RenderKernel.h"
+#include "LoudnessLeveler.h"
 #include <stdatomic.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,8 @@
 // No allocations, locks, Swift ARC, logging, or dispatch in the audio callback.
 struct FaderRenderState {
     _Atomic(float) targetGain;
+    _Atomic(bool) loudnessEnabled;
+    FaderLoudnessState loudness;
     double currentGain;
     double volumeStep;
     unsigned inputChannelOffset;
@@ -27,6 +30,8 @@ FaderRenderState *FaderRenderCreate(float gain, unsigned offset, double sampleRa
     if (!s) return NULL;
     gain = clampedGain(gain);
     atomic_init(&s->targetGain, gain);
+    atomic_init(&s->loudnessEnabled, false);
+    FaderLoudnessInit(&s->loudness, sampleRate);
     _Static_assert(ATOMIC_INT_LOCK_FREE == 2 && ATOMIC_BOOL_LOCK_FREE == 2,
                    "Fader needs lock-free atomics on the target architecture");
     s->currentGain = gain;
@@ -40,6 +45,9 @@ FaderRenderState *FaderRenderCreate(float gain, unsigned offset, double sampleRa
 void FaderRenderDestroy(FaderRenderState *s) { free(s); }
 void FaderRenderSetGain(FaderRenderState *s, float gain) {
     atomic_store_explicit(&s->targetGain, clampedGain(gain), memory_order_relaxed);
+}
+void FaderRenderSetLoudnessEqualization(FaderRenderState *s, bool enabled) {
+    atomic_store_explicit(&s->loudnessEnabled, enabled, memory_order_relaxed);
 }
 
 static const AudioBuffer *channelBuffer(const AudioBufferList *list, unsigned channel, unsigned *local) {
@@ -75,6 +83,7 @@ void FaderRender(const AudioBufferList *input, AudioBufferList *output, FaderRen
     const AudioBuffer *left = channelBuffer(input, s->inputChannelOffset, &l);
     const AudioBuffer *right = channelBuffer(input, s->inputChannelOffset + 1, &r);
     float target = atomic_load_explicit(&s->targetGain, memory_order_relaxed);
+    bool loudnessEnabled = atomic_load_explicit(&s->loudnessEnabled, memory_order_relaxed);
     double gain = s->currentGain;
     // A 30 ms exponential time constant is independent of device rate and
     // callback size. Keep the intermediate in double to reach the target even
@@ -87,6 +96,9 @@ void FaderRender(const AudioBufferList *input, AudioBufferList *output, FaderRen
         // then release with a 120 ms time constant. Attack is immediate: this
         // needs no lookahead, extra buffers, or added latency.
         double dryA = sample(left, l, f), dryB = sample(right, r, f);
+        double level = FaderLoudnessGain(&s->loudness, dryA, dryB, loudnessEnabled);
+        dryA *= level;
+        dryB *= level;
         double peak = fmax(fabs(dryA), fabs(dryB));
         double ceiling = peak > 1.0 / FaderMaximumGain ? 1 / peak : FaderMaximumGain;
         if (ceiling <= s->gainCeiling) {

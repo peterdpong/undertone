@@ -7,7 +7,7 @@ import Foundation
         defer { defaults.removePersistentDomain(forName: suite) }
         let library = PresetLibrary(defaults: defaults)
         precondition(library.load().isEmpty)
-        var live = ["com.browser": SourceSettings(volume: 2, muted: false, outputUID: "headphones"),
+        var live = ["com.browser": SourceSettings(volume: 2, muted: false, outputUID: "headphones", loudnessEqualization: true),
                     "com.music": SourceSettings(volume: 0.5, muted: true),
                     "pid.123": SourceSettings(volume: 3)]
         let output = PresetDevice(uid: "speakers", name: "Speakers", volume: 0.68)
@@ -20,6 +20,8 @@ import Foundation
         let restored = PresetLibrary(defaults: defaults).load()
         precondition(restored == [preset], "Names, identities, boosts, mute, routes and devices must survive relaunch")
         precondition(restored[0].mix.apps["com.browser"]?.gain == 2, "Inactive app boost must be retained by stable identity")
+        precondition(restored[0].mix.apps["com.browser"]?.loudnessEqualization == true,
+                     "Presets must restore each app's equalization choice")
         // Older libraries may contain a microphone that is no longer connected.
         // It must not affect the saved output mix, matching, or subsequent saves.
         var legacyJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(preset)) as! [String: Any]
@@ -41,6 +43,9 @@ import Foundation
         precondition(snapshot.matches(equivalent), "Default apps, display names and hardware quantization should not mark a preset changed")
         equivalent.apps["com.browser"]?.volume = 2.5
         precondition(!snapshot.matches(equivalent), "Manual level changes must uncheck the current preset")
+        equivalent = snapshot
+        equivalent.apps["com.browser"]?.loudnessEqualization = false
+        precondition(!snapshot.matches(equivalent), "Equalization changes must uncheck the current preset")
         equivalent = snapshot
         equivalent.output?.uid = "other-speakers"
         precondition(!snapshot.matches(equivalent), "Device changes must uncheck the current preset")

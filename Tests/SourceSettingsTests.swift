@@ -4,6 +4,12 @@ import Foundation
     static func main() throws {
         var settings = SourceSettings()
         precondition(settings.gain == 1 && !settings.needsMixing)
+        settings.loudnessEqualization = true
+        precondition(settings.needsMixing && settings.gain == 1, "Equalization must run at 100%")
+        let equalized = try JSONDecoder().decode(SourceSettings.self, from: JSONEncoder().encode(settings))
+        precondition(equalized.loudnessEqualization)
+        settings.loudnessEqualization = false
+        precondition(!settings.needsMixing, "Turning equalization off at unity should restore bypass")
         settings.volume = 2.5
         precondition(settings.gain == 2.5 && settings.needsMixing, "Boost must activate processing")
         settings.muted = true
@@ -40,6 +46,7 @@ import Foundation
         let legacy = Data(#"{"volume":0.5,"muted":false}"#.utf8)
         let old = try JSONDecoder().decode(SourceSettings.self, from: legacy)
         precondition(old.volume == 0.5 && old.needsMixing)
+        precondition(!old.loudnessEqualization, "Existing app settings must default equalization off")
         print("PASS: boost, persistence, mute, unity bypass, routing, bounds, legacy settings, call protection")
     }
 }
