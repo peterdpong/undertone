@@ -162,7 +162,11 @@ struct AudioSource: Identifiable {
             let bundle = bundleURL.flatMap(Bundle.init(url:))
             let key = bundle?.bundleIdentifier ?? rawID
             guard key != Bundle.main.bundleIdentifier, !AudioMixingPolicy.isProtected(bundleID: key) else { continue }
-            let name = [bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
+            // System effects are played by a shared macOS service, not one app.
+            let isSystemSound = ["com.apple.audio.systemsoundserverd", "com.apple.audio.systemsoundserv",
+                                 "systemsoundserverd", "systemsoundserv"].contains(rawID) ||
+                ["systemsoundserverd", "systemsoundserv"].contains(rawProcessName ?? "")
+            let name = isSystemSound ? "System Sounds" : [bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
                         bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String,
                         app?.localizedName, executableURL?.lastPathComponent]
                 .compactMap { $0 }.first { !$0.isEmpty } ?? rawID
