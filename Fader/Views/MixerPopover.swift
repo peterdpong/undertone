@@ -192,8 +192,9 @@ private struct SourceRow: View {
                 .accessibilityLabel("\(setting.muted ? "Unmute" : "Mute") \(source.name)")
 
                 Slider(value: Binding(get: { Double(setting.volume) }, set: { volume in
-                    model.update(source.id) { $0.volume = Float(volume); $0.muted = false }
-                }), in: 0...Double(SourceSettings.maximumVolume), step: 0.01)
+                    // Keep 1% increments without the native stepped slider's tick strip.
+                    model.update(source.id) { $0.volume = Float((volume * 100).rounded() / 100); $0.muted = false }
+                }), in: 0...Double(SourceSettings.maximumVolume))
                     .opacity(setting.muted ? 0.4 : 1)
                     .accessibilityLabel("\(source.name) volume")
                     .accessibilityValue(setting.muted ? "Muted" : setting.volume.formatted(.percent.precision(.fractionLength(0))))
