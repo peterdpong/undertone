@@ -47,7 +47,7 @@ Reset clears app levels and routes. Quitting destroys the private taps/devices a
 
 ## Lightweight by design
 
-Discovery uses Core Audio property listeners with a short event-coalescing delay, not a polling timer. Apps at 100% on their normal output bypass the audio engine entirely. Only playing apps that need gain, mute, or routing get a private tap and aggregate device. Sleeping and stopping playback release those resources. The render callback uses lock-free gain updates, performs no heap allocation or Swift ARC, and ramps changes over up to 128 frames.
+Discovery uses Core Audio property listeners with a short event-coalescing delay, not a polling timer. Apps at 100% on their normal output bypass the audio engine entirely. Only playing apps that need gain, mute, or routing get a private tap and aggregate device. Sleeping and stopping playback release those resources. The render callback uses lock-free gain updates, performs no heap allocation or Swift ARC, and smooths volume changes with a 30 ms time constant at every device sample rate.
 
 ## Mix presets
 

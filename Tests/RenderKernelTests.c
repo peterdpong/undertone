@@ -6,7 +6,17 @@
 #include <float.h>
 
 typedef struct { UInt32 count; AudioBuffer buffers[3]; } Buffers;
-static void near(float actual, float expected) { assert(fabsf(actual - expected) < 0.00001f); }
+static void near(float actual, float expected) {
+    if (fabsf(actual - expected) >= 0.00001f) fprintf(stderr, "Expected %.8f, got %.8f\n", expected, actual);
+    assert(fabsf(actual - expected) < 0.00001f);
+}
+
+static void settle(FaderRenderState *s) {
+    float silence[2048] = {0}, output[2048];
+    Buffers in = {1, {{2, sizeof(silence), silence}}};
+    Buffers out = {1, {{2, sizeof(output), output}}};
+    for (int i = 0; i < 48; i++) FaderRender((AudioBufferList *)&in, (AudioBufferList *)&out, s);
+}
 
 static void testBoost(void) {
     float quiet[] = {.125, -.0625, .125, -.0625};
@@ -22,11 +32,16 @@ static void testBoost(void) {
     s = FaderRenderCreate(1, 0, 48000);
     FaderRenderSetGain(s, 2);
     FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
-    near(out[0], .1875); near(out[1], -.09375); near(out[2], .25); near(out[3], -.125);
+    assert(out[0] > .125 && out[2] > out[0] && out[2] < .25);
+    settle(s);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
+    near(out[2], .25); near(out[3], -.125);
     FaderRenderSetGain(s, 0);
+    settle(s);
     FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
     near(out[2], 0); near(out[3], 0);
     FaderRenderSetGain(s, 4);
+    settle(s);
     FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
     near(out[2], .5); near(out[3], -.25);
     FaderRenderDestroy(s);
@@ -206,7 +221,7 @@ static void testLimiterRecovery(void) {
         near(output[2*(frames-1)], .1 * (4 - 3 * exp(-(double)release / (rates[r] * .12))));
         FaderRenderSetGain(state, 1);
         input[0] = input[1] = .1f;
-        FaderRender((AudioBufferList *)&in, (AudioBufferList *)&out, state);
+        for (int i = 0; i < 4; i++) FaderRender((AudioBufferList *)&in, (AudioBufferList *)&out, state);
         near(output[2*(frames-1)], .1); // Reset clears boost without residual attenuation.
         FaderRenderDestroy(state);
         free(input); free(output);
@@ -214,6 +229,35 @@ static void testLimiterRecovery(void) {
     assert(!FaderRenderCreate(4, 0, 0));
     assert(!FaderRenderCreate(4, 0, NAN));
     assert(!FaderRenderCreate(4, 0, INFINITY));
+}
+
+static void testVolumeSmoothing(void) {
+    const double rates[] = {44100, 48000, 96000, 192000};
+    for (unsigned r = 0; r < 4; r++) {
+        unsigned frames = (unsigned)llround(rates[r] * .03);
+        float *input = malloc(frames * 2 * sizeof(float));
+        float *whole = malloc(frames * 2 * sizeof(float));
+        float *chunked = malloc(frames * 2 * sizeof(float));
+        assert(input && whole && chunked);
+        for (unsigned i = 0; i < frames * 2; i++) input[i] = .1;
+        Buffers in = {1, {{2, frames * 2 * sizeof(float), input}}};
+        Buffers out = {1, {{2, frames * 2 * sizeof(float), whole}}};
+        FaderRenderState *a = FaderRenderCreate(.2, 0, rates[r]);
+        FaderRenderState *b = FaderRenderCreate(.2, 0, rates[r]);
+        FaderRenderSetGain(a, .8); FaderRenderSetGain(b, .8);
+        FaderRender((AudioBufferList *)&in, (AudioBufferList *)&out, a);
+        for (unsigned offset = 0; offset < frames;) {
+            unsigned n = frames - offset < 37 ? frames - offset : 37;
+            in.buffers[0] = (AudioBuffer){2, n * 2 * sizeof(float), input + 2*offset};
+            out.buffers[0] = (AudioBuffer){2, n * 2 * sizeof(float), chunked + 2*offset};
+            FaderRender((AudioBufferList *)&in, (AudioBufferList *)&out, b);
+            offset += n;
+        }
+        for (unsigned i = 0; i < frames * 2; i++) near(chunked[i], whole[i]);
+        near(whole[2*(frames-1)], .1 * (.8 - .6 * exp(-(double)frames/(rates[r]*.03))));
+        FaderRenderDestroy(a); FaderRenderDestroy(b);
+        free(input); free(whole); free(chunked);
+    }
 }
 
 int main(void) {
@@ -245,7 +289,8 @@ int main(void) {
     near(mono[0], .2); near(mono[1], -.2);
     FaderRenderSetGain(s, 0);
     FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
-    near(mono[0], .1); near(mono[1], 0);
+    assert(mono[0] > 0 && mono[0] < .2 && mono[1] < 0);
+    settle(s);
     FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
     near(mono[0], 0); near(mono[1], 0);
     FaderRenderDestroy(s);
@@ -268,7 +313,7 @@ int main(void) {
     for (int i = 0; i < 12; i++) assert(isfinite(surround[i]));
     FaderRenderDestroy(s);
 
-    // Full 128-frame smoothing ramp is monotonic and ends at the requested gain.
+    // Volume smoothing is monotonic and eventually settles to the exact gain.
     float ones[256], ramp[256];
     for (int i = 0; i < 256; i++) ones[i] = 1;
     in = (Buffers){1, {{2, sizeof(ones), ones}}};
@@ -277,11 +322,15 @@ int main(void) {
     FaderRenderSetGain(s, .25);
     FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
     for (int i = 2; i < 256; i++) assert(ramp[i] <= ramp[i - 2]);
+    assert(ramp[254] > .25);
+    settle(s);
+    FaderRender((AudioBufferList *)&in, (AudioBufferList *)&output, s);
     near(ramp[254], .25); near(ramp[255], .25);
     FaderRenderDestroy(s);
     testBoost();
     testSteadyBoostAcrossBuffers();
     testBoostFidelity();
+    testVolumeSmoothing();
     testLimiterRecovery();
     puts("PASS: gain, layouts, microphone exclusion, mono, mute, ramps, buffer bounds, boost, peak limiting, nonfinite values, steady-tone/buffer continuity");
     return 0;

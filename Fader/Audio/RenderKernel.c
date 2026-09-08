@@ -8,7 +8,8 @@
 // No allocations, locks, Swift ARC, logging, or dispatch in the audio callback.
 struct FaderRenderState {
     _Atomic(float) targetGain;
-    float currentGain;
+    double currentGain;
+    double volumeStep;
     unsigned inputChannelOffset;
     double gainCeiling;
     double releaseStep;
@@ -29,6 +30,7 @@ FaderRenderState *FaderRenderCreate(float gain, unsigned offset, double sampleRa
     _Static_assert(ATOMIC_INT_LOCK_FREE == 2 && ATOMIC_BOOL_LOCK_FREE == 2,
                    "Fader needs lock-free atomics on the target architecture");
     s->currentGain = gain;
+    s->volumeStep = -expm1(-1 / (sampleRate * 0.030));
     s->inputChannelOffset = offset;
     s->gainCeiling = FaderMaximumGain;
     s->holdFrames = (unsigned)ceil(sampleRate * 0.05);
@@ -73,12 +75,13 @@ void FaderRender(const AudioBufferList *input, AudioBufferList *output, FaderRen
     const AudioBuffer *left = channelBuffer(input, s->inputChannelOffset, &l);
     const AudioBuffer *right = channelBuffer(input, s->inputChannelOffset + 1, &r);
     float target = atomic_load_explicit(&s->targetGain, memory_order_relaxed);
-    float gain = s->currentGain;
-    // Ramp over at most 128 frames to avoid clicks while moving a slider.
-    unsigned ramp = frames < 128 ? frames : 128;
-    float step = ramp ? (target - gain) / ramp : 0;
+    double gain = s->currentGain;
+    // A 30 ms exponential time constant is independent of device rate and
+    // callback size. Keep the intermediate in double to reach the target even
+    // at high sample rates, and settle tiny tails to an exact gain (or mute).
     for (unsigned f = 0; f < frames; ++f) {
-        if (f < ramp) gain += step;
+        gain += ((double)target - gain) * s->volumeStep;
+        if (fabs((double)target - gain) < 1e-6) gain = target;
         // Track a stereo-linked gain ceiling instead of reshaping each peak.
         // Hold for 50 ms so the limiter does not recover between waveform cycles,
         // then release with a 120 ms time constant. Attack is immediate: this
@@ -110,7 +113,7 @@ void FaderRender(const AudioBufferList *input, AudioBufferList *output, FaderRen
             }
         }
     }
-    s->currentGain = target;
+    s->currentGain = gain;
 }
 OSStatus FaderIOProc(AudioObjectID device, const AudioTimeStamp *now,
                     const AudioBufferList *input, const AudioTimeStamp *inputTime,
