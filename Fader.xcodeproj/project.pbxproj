@@ -11,6 +11,7 @@
 		347F6002A8ED6C08814662AB /* SourceSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED46C363A47CA4C745F2B17 /* SourceSettings.swift */; };
 		38A208DB51059E078B823067 /* RenderKernel.c in Sources */ = {isa = PBXBuildFile; fileRef = E8293691679E8E8D54049D60 /* RenderKernel.c */; };
 		4ADE421004842CA6FE1720D4 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959F9097DE379C4D0324A3BB /* SettingsView.swift */; };
+		661ACCEFB187102BC5640149 /* ApplicationSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B04395CD9CC0F96BFA115D /* ApplicationSession.swift */; };
 		83F5CCCE3243855C23E5C437 /* MixerModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277F038672989D61B1FD3EE /* MixerModel.swift */; };
 		BF9C25CAD2CFF53A9FA6EF06 /* FaderApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FBF08DD1030450F64258E84 /* FaderApp.swift */; };
 		E58D88271B749C925D793DB8 /* MixerPopover.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F4AB5E1C34D6FF3543BC40B /* MixerPopover.swift */; };
@@ -32,6 +33,7 @@
 		959F9097DE379C4D0324A3BB /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		9A74C0DE2AADA8E66598CE3B /* ProcessMixer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProcessMixer.swift; sourceTree = "<group>"; };
 		AC66662A3ACCD94B7A7FBC01 /* Fader-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "Fader-Bridging-Header.h"; sourceTree = "<group>"; };
+		B4B04395CD9CC0F96BFA115D /* ApplicationSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApplicationSession.swift; sourceTree = "<group>"; };
 		D70CD5AA03F4F4B745F2D905 /* Fader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fader.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		E8293691679E8E8D54049D60 /* RenderKernel.c */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.c; path = RenderKernel.c; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -40,6 +42,7 @@
 		3A7CBCA8692D1D6F4EB3F920 /* Fader */ = {
 			isa = PBXGroup;
 			children = (
+				B4B04395CD9CC0F96BFA115D /* ApplicationSession.swift */,
 				1FBF08DD1030450F64258E84 /* FaderApp.swift */,
 				6277F038672989D61B1FD3EE /* MixerModel.swift */,
 				6323EEA6E8B07C0E47E9A8F8 /* MixPreset.swift */,
@@ -167,6 +170,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				661ACCEFB187102BC5640149 /* ApplicationSession.swift in Sources */,
 				F74E45BC3DC15D47FB1A9D0B /* AudioHardware.swift in Sources */,
 				BF9C25CAD2CFF53A9FA6EF06 /* FaderApp.swift in Sources */,
 				F319877FA26567DCA1EB537C /* MixPreset.swift in Sources */,

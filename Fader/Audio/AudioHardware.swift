@@ -131,6 +131,7 @@ struct AudioSource: Identifiable {
     let name: String
     let icon: NSImage?
     var processes: [AudioObjectID]
+    var processIDs: Set<pid_t>
     var isPlaying: Bool
     var isApplication: Bool
 
@@ -168,12 +169,13 @@ struct AudioSource: Identifiable {
             let playing = (try? HAL.read(object, HAL.address(kAudioProcessPropertyIsRunningOutput), default: UInt32(0))) == 1
             if var existing = grouped[key] {
                 existing.processes.append(object)
+                existing.processIDs.insert(pid)
                 existing.isPlaying = existing.isPlaying || playing
                 grouped[key] = existing
             } else {
                 grouped[key] = AudioSource(id: key, name: name,
                                           icon: bundleURL.map { NSWorkspace.shared.icon(forFile: $0.path) } ?? app?.icon,
-                                          processes: [object], isPlaying: playing,
+                                          processes: [object], processIDs: [pid], isPlaying: playing,
                                           isApplication: bundleURL?.pathExtension == "app")
             }
         }

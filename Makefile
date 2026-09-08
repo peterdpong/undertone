@@ -15,5 +15,7 @@ test:
 	./build/settings-tests
 	xcrun swiftc -swift-version 6 -module-cache-path build/test-module-cache -import-objc-header Fader/Audio/Fader-Bridging-Header.h Fader/SourceSettings.swift Fader/MixPreset.swift Tests/PresetTests.swift -o build/preset-tests
 	./build/preset-tests
+	xcrun swiftc -swift-version 6 -module-cache-path build/test-module-cache Fader/ApplicationSession.swift Tests/ApplicationSessionTests.swift -o build/session-tests
+	./build/session-tests
 diagnose: build
 	build/Build/Products/Debug/Fader.app/Contents/MacOS/Fader --diagnose

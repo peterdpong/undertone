@@ -9,13 +9,13 @@ A small, native macOS menu bar volume mixer, built in the style of [Horizon](htt
 - System output selection and hardware volume where supported.
 - Microphone/input selection and hardware input gain where supported.
 - Saved app levels and routes, automatic mixing while Fader runs, and optional launch at login.
-- Only applications with active audio output appear. Paused apps disappear while keeping their saved volume, boost, mute, and routing settings. Each app shows its effective output's icon; click it to select an output directly. The reset arrow restores 100% volume and unmutes without changing the selected output.
+- Applications appear after their first audio playback during the current Fader session. Their controls stay visible through pauses and closed audio streams until the app fully quits. Relaunching an app quietly does not restore its row until it plays again; volume, boost, mute, and routing preferences remain saved. Each app shows its effective output's icon; click it to select an output directly. The reset arrow restores 100% volume and unmutes without changing the selected output.
 - Unplugged app outputs fall back to the system output and reconnect when available.
 - Named mix presets, saved from the current state and managed in a native Settings window.
 
 Input selection changes the macOS default input. Apps with their own microphone selection may override it. Per-app controls apply to playback; they do not mix microphones. Browser helper processes are grouped under their containing app when the system exposes that identity; separate browser tabs are not separate sliders.
 
-The application filter follows Core Audio's output-running notifications, with no polling or extra audio taps. An app that keeps its output stream running through silence may remain visible. Muting an app in Fader does not itself hide its active stream, so the unmute control stays available.
+The application list follows Core Audio's output-running notifications and macOS app launch/termination events, with no polling or extra audio taps. Session visibility tracks running app instances independently of audio processes, so closing a browser tab or releasing an audio stream does not remove the parent app's controls. Paused rows retain their name and icon while their audio-processing resources are released. Restarting Fader starts a fresh visibility session.
 
 FaceTime and Apple's `avconferenced` / `callservicesd` helpers are excluded from app mixing. Intercepting their playback can disrupt call echo cancellation and cause quiet call audio or an echo for the other person. Use macOS controls for FaceTime and adjust the browser or media app separately. Existing call-volume preferences and preset entries are removed automatically; the remaining preset settings are preserved. App sliders use 1% steps, and levels that round to 100% bypass processing on the default output.
 
@@ -54,7 +54,7 @@ Discovery uses Core Audio property listeners with a short event-coalescing delay
 
 Set up your mix, open **Presets → Save Current Mix…**, and name it—for example, “FaceTime” with your browser at 200%. Choose its name from the same menu to apply it. Switching is manual; Fader does not watch calls or automatically change presets.
 
-Presets save playing apps plus previously adjusted apps, including boost, mute, and per-app output routes. They also save the system input/output selections and their supported hardware levels. Saved app identities survive app restarts, so an inactive browser receives its saved boost when it next plays. Transient sources identified only by process ID are omitted because those IDs can belong to another process after relaunch.
+Presets save visible session apps plus previously adjusted apps, including boost, mute, and per-app output routes. They also save the system input/output selections and their supported hardware levels. Saved app identities survive app restarts, so an inactive browser receives its saved boost when it next plays. Transient sources identified only by process ID are omitted because those IDs can belong to another process after relaunch.
 
 **Manage Presets…** opens a sidebar settings window modeled on Horizon. Select a preset to inspect its saved mix, rename it, or choose **Use Current Mix → Save** to replace its snapshot. The plus button saves another snapshot; minus deletes the selected preset without changing the live mix. **Apply** restores a saved preset. Unsaved edits must be saved or reverted before applying.
 

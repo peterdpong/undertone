@@ -6,6 +6,7 @@ import ServiceManagement
 @MainActor @Observable final class MixerModel {
     var devices: [AudioDevice] = []
     var sources: [AudioSource] = []
+    var visibleSources: [AudioSource] = []
     var outputID: AudioObjectID = 0
     var inputID: AudioObjectID = 0
     var outputVolume: Float?
@@ -28,6 +29,7 @@ import ServiceManagement
     @ObservationIgnored private var refreshTask: Task<Void, Never>?
     @ObservationIgnored private var workspaceTokens: [NSObjectProtocol] = []
     @ObservationIgnored private var sleeping = false
+    @ObservationIgnored private var applicationSession = ApplicationSession()
 
     init() {
         if let data = UserDefaults.standard.data(forKey: "sourceSettings"),
@@ -48,17 +50,17 @@ import ServiceManagement
         workspaceTokens.append(center.addObserver(forName: NSWorkspace.didWakeNotification, object: nil, queue: .main) { [weak self] _ in
             Task { @MainActor in self?.sleeping = false; self?.sourceErrors = [:]; self?.refresh() }
         })
+        for event in [NSWorkspace.didLaunchApplicationNotification, NSWorkspace.didTerminateApplicationNotification] {
+            workspaceTokens.append(center.addObserver(forName: event, object: nil, queue: .main) { [weak self] _ in
+                Task { @MainActor in self?.scheduleRefresh() }
+            })
+        }
         refresh()
     }
     var outputs: [AudioDevice] { devices.filter { $0.outputChannels > 0 } }
     var inputs: [AudioDevice] { devices.filter { $0.inputChannels > 0 } }
     var output: AudioDevice? { devices.first { $0.id == outputID } }
     var input: AudioDevice? { devices.first { $0.id == inputID } }
-    var visibleSources: [AudioSource] {
-        // Filter on Core Audio output activity, not the saved volume: muted
-        // sources stay reachable while playing, and paused apps keep preferences.
-        sources.filter(\.isPlaying)
-    }
     func preference(_ id: String) -> SourceSettings {
         AudioMixingPolicy.isProtected(bundleID: id) ? SourceSettings() : settings[id] ?? SourceSettings()
     }
@@ -66,8 +68,8 @@ import ServiceManagement
     func snapshot() -> MixSnapshot {
         var values = settings.filter { $0.value != SourceSettings() }
         var names = sourceNames
-        for source in sources {
-            if source.isApplication && source.isPlaying { values[source.id] = preference(source.id) }
+        for source in visibleSources {
+            if source.isApplication { values[source.id] = preference(source.id) }
             names[source.id] = source.name
         }
         return MixSnapshot(settings: values, names: names,
@@ -145,6 +147,7 @@ import ServiceManagement
         do {
             devices = try AudioDevice.all()
             sources = try AudioSource.all()
+            updateVisibleSources()
             outputID = HAL.defaultDevice(input: false)
             inputID = HAL.defaultDevice(input: true)
             outputVolume = output?.volume(input: false)
@@ -154,6 +157,33 @@ import ServiceManagement
             reconcile()
         } catch { errorMessage = error.localizedDescription }
     }
+    private func updateVisibleSources() {
+        var running: [String: Set<pid_t>] = [:]
+        for app in NSWorkspace.shared.runningApplications where !app.isTerminated {
+            if let id = app.bundleIdentifier { running[id, default: []].insert(app.processIdentifier) }
+        }
+        // CLI/background sources have no owning .app in NSWorkspace. Keep a
+        // previously heard process while it lives, even if its audio object goes away.
+        for source in sources + visibleSources where !source.isApplication {
+            let alive = source.processIDs.filter { pid in
+                kill(pid, 0) == 0 || errno == EPERM
+            }
+            running[source.id, default: []].formUnion(alive)
+        }
+        let visible = applicationSession.update(playing: Set(sources.filter(\.isPlaying).map(\.id)), running: running)
+        let current = Dictionary(uniqueKeysWithValues: sources.map { ($0.id, $0) })
+        let previous = Dictionary(uniqueKeysWithValues: visibleSources.map { ($0.id, $0) })
+        visibleSources = visible.compactMap { id in
+            if let source = current[id] { return source }
+            guard var source = previous[id] else { return nil }
+            // Cached display metadata must never carry stale Core Audio objects
+            // into processing. Only the fresh `sources` list drives the engine.
+            source.processes = []
+            source.isPlaying = false
+            return source
+        }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
+    }
+
     private func updateObservers() {
         let changed: @Sendable () -> Void = { [weak self] in
             Task { @MainActor in self?.scheduleRefresh() }
@@ -187,7 +217,7 @@ import ServiceManagement
         change(&value)
         value.volume = SourceSettings.clampedVolume(value.volume)
         settings[id] = value
-        if let source = sources.first(where: { $0.id == id }) { sourceNames[id] = source.name }
+        if let source = visibleSources.first(where: { $0.id == id }) { sourceNames[id] = source.name }
         sourceErrors[id] = nil
         persistSettings()
         reconcile()
