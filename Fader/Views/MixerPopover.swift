@@ -5,6 +5,8 @@ struct MixerPopover: View {
     @Environment(\.openSettings) private var openSettings
     @State private var savingPreset = false
     @State private var presetName = ""
+    @State private var applicationListHeight: CGFloat = 0
+    private let maximumApplicationListHeight: CGFloat = 330
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -62,7 +64,7 @@ struct MixerPopover: View {
                     .padding(.bottom, 14)
             } else {
                 ScrollView {
-                    LazyVStack(spacing: 0) {
+                    VStack(spacing: 0) {
                         ForEach(model.visibleSources) { source in
                             if source.id != model.visibleSources.first?.id {
                                 Divider()
@@ -70,9 +72,17 @@ struct MixerPopover: View {
                             SourceRow(source: source, model: model)
                                 .padding(.vertical, 8)
                         }
-                    }.padding(.horizontal, 14).padding(.vertical, 6)
+                    }
+                    .padding(.horizontal, 14).padding(.vertical, 6)
+                    .onGeometryChange(for: CGFloat.self) { geometry in
+                        geometry.size.height
+                    } action: { height in
+                        applicationListHeight = height
+                    }
                 }
-                .frame(height: min(CGFloat(model.visibleSources.count) * 66, 330))
+                .frame(height: min(applicationListHeight, maximumApplicationListHeight))
+                .scrollDisabled(applicationListHeight <= maximumApplicationListHeight)
+                .scrollIndicators(applicationListHeight > maximumApplicationListHeight ? .automatic : .hidden)
                 .padding(.bottom, 8)
             }
 
