@@ -133,6 +133,7 @@ struct MixerPopover: View {
 }
 
 private struct SourceRow: View {
+    private static let volumeSnapPoints = [0, 50, 100, 150, 200, 300, 400]
     let source: AudioSource
     @Bindable var model: MixerModel
 
@@ -192,22 +193,28 @@ private struct SourceRow: View {
                 .accessibilityLabel("\(setting.muted ? "Unmute" : "Mute") \(source.name)")
 
                 Slider(value: Binding(get: { Double(setting.volume) }, set: { volume in
-                    // Keep 1% increments without the native stepped slider's tick strip.
-                    model.update(source.id) { $0.volume = Float((volume * 100).rounded() / 100); $0.muted = false }
+                    let percent = Int((volume * 100).rounded())
+                    let event = NSApp.currentEvent
+                    let isMouseAdjustment = event?.type == .leftMouseDown || event?.type == .leftMouseDragged || event?.type == .leftMouseUp
+                    // Magnetize mouse adjustments within five percentage points.
+                    // Keyboard/accessibility and Option-drag retain fine control.
+                    let shouldSnap = isMouseAdjustment && event?.modifierFlags.contains(.option) != true
+                    let adjusted = shouldSnap ? Self.volumeSnapPoints.first { abs($0 - percent) <= 5 } ?? percent : percent
+                    model.update(source.id) { $0.volume = Float(adjusted) / 100; $0.muted = false }
                 }), in: 0...Double(SourceSettings.maximumVolume))
                     .opacity(setting.muted ? 0.4 : 1)
                     .accessibilityLabel("\(source.name) volume")
                     .accessibilityValue(setting.muted ? "Muted" : setting.volume.formatted(.percent.precision(.fractionLength(0))))
-                    .help("Adjust \(source.name) from 0% to 400%")
+                    .help("Adjust \(source.name) from 0% to 400%. Snaps to common levels; hold Option for precise adjustment.")
 
                 Text(setting.muted ? "Mute" : setting.volume.formatted(.percent.precision(.fractionLength(0))))
                     .font(.caption).monospacedDigit()
-                    .foregroundStyle(setting.volume > 1 && !setting.muted ? Color.accentColor : .secondary)
+                    .foregroundStyle(.primary)
                     .frame(width: 34, alignment: .trailing)
                     .contextMenu {
-                        Button("Volume: 100%") { model.update(source.id) { $0.volume = 1; $0.muted = false } }
-                        Button("Volume: 200%") { model.update(source.id) { $0.volume = 2; $0.muted = false } }
-                        Button("Volume: 400%") { model.update(source.id) { $0.volume = SourceSettings.maximumVolume; $0.muted = false } }
+                        ForEach(Self.volumeSnapPoints, id: \.self) { percent in
+                            Button("Volume: \(percent)%") { model.update(source.id) { $0.volume = Float(percent) / 100; $0.muted = false } }
+                        }
                     }
             }
             if let error = model.sourceErrors[source.id] {
