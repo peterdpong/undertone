@@ -19,6 +19,8 @@ The application filter follows Core Audio's output-running notifications, with n
 
 FaceTime and Apple's `avconferenced` / `callservicesd` helpers are excluded from app mixing. Intercepting their playback can disrupt call echo cancellation and cause quiet call audio or an echo for the other person. Use macOS controls for FaceTime and adjust the browser or media app separately. Existing call-volume preferences and preset entries are removed automatically; the remaining preset settings are preserved. App sliders use 1% steps, and levels that round to 100% bypass processing on the default output.
 
+**FaceTime screen sharing is not yet compatible with boosted shared-app audio.** A user reported a vibrato/warbling effect for the viewer when boosting the shared app. Excluding FaceTime does not remove the shared app's processing path. As a workaround, reset the shared app to 100%, unmuted, and choose System Output to release its tap; quitting Fader releases every tap. Confirm the result with the viewer. The capture/timing cause and a fix that preserves boost during sharing remain unverified. Similar reports exist in [FineTune #200](https://github.com/ronitsingh10/FineTune/issues/200) and [#292](https://github.com/ronitsingh10/FineTune/issues/292).
+
 ## Build and run
 
 Requires macOS 14.2+, Xcode 26+ (Swift 6.2+), and XcodeGen. There are no packages to download during a build.

@@ -87,6 +87,51 @@ static void testBoost(void) {
     FaderRenderDestroy(s);
 }
 
+static void testSteadyBoostAcrossBuffers(void) {
+    // A steady periodic input must stay periodic at fixed gain, independently
+    // of callback buffer boundaries. This catches kernel-induced warble/gaps;
+    // it does not exercise Core Audio clocks or a screen-share capture graph.
+    enum { frames = 48000, period = 240, channels = 2 };
+    float *input = malloc(frames * channels * sizeof(float));
+    float *whole = malloc(frames * channels * sizeof(float));
+    float *chunked = malloc(frames * channels * sizeof(float));
+    assert(input && whole && chunked);
+    const unsigned chunkSizes[] = {1, 127, 256, 511, 64, 1024};
+    const float amplitudes[] = {.05f, .8f}; // Linear boost and active peak protection.
+    const float gains[] = {1, 2, 4};
+    for (unsigned a = 0; a < sizeof(amplitudes) / sizeof(amplitudes[0]); a++) {
+        for (unsigned f = 0; f < frames; f++) {
+            double phase = 2 * M_PI * (f % period) / period;
+            input[2 * f] = amplitudes[a] * (float)sin(phase);
+            input[2 * f + 1] = amplitudes[a] * .5f * (float)sin(phase + .3);
+        }
+        for (unsigned g = 0; g < sizeof(gains) / sizeof(gains[0]); g++) {
+            Buffers in = {1, {{channels, frames * channels * sizeof(float), input}}};
+            Buffers out = {1, {{channels, frames * channels * sizeof(float), whole}}};
+            FaderRenderState *s = FaderRenderCreate(gains[g], 0);
+            FaderRender((AudioBufferList *)&in, (AudioBufferList *)&out, s);
+            FaderRenderDestroy(s);
+            s = FaderRenderCreate(gains[g], 0);
+            unsigned f = 0, chunk = 0;
+            while (f < frames) {
+                unsigned n = chunkSizes[chunk++ % (sizeof(chunkSizes) / sizeof(chunkSizes[0]))];
+                if (n > frames - f) n = frames - f;
+                in.buffers[0] = (AudioBuffer){channels, n * channels * sizeof(float), input + f * channels};
+                out.buffers[0] = (AudioBuffer){channels, n * channels * sizeof(float), chunked + f * channels};
+                FaderRender((AudioBufferList *)&in, (AudioBufferList *)&out, s);
+                f += n;
+            }
+            FaderRenderDestroy(s);
+            for (unsigned i = 0; i < frames * channels; i++) {
+                near(chunked[i], whole[i]);
+                assert(isfinite(chunked[i]) && fabsf(chunked[i]) <= 1);
+                if (i >= period * channels) near(chunked[i], chunked[i - period * channels]);
+            }
+        }
+    }
+    free(input); free(whole); free(chunked);
+}
+
 int main(void) {
     float stereo[] = { 0.8, -0.4, 0.2, -0.6 };
     float out[4] = { 9, 9, 9, 9 };
@@ -151,6 +196,7 @@ int main(void) {
     near(ramp[254], .25); near(ramp[255], .25);
     FaderRenderDestroy(s);
     testBoost();
-    puts("PASS: gain, layouts, microphone exclusion, mono, mute, ramps, buffer bounds, boost, linked peak limiting, nonfinite values");
+    testSteadyBoostAcrossBuffers();
+    puts("PASS: gain, layouts, microphone exclusion, mono, mute, ramps, buffer bounds, boost, peak limiting, nonfinite values, steady-tone/buffer continuity");
     return 0;
 }
