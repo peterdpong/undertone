@@ -59,8 +59,8 @@ enum HAL {
         guard AudioObjectGetPropertyData(object, &address, 0, nil, &size, storage) == noErr else { return 0 }
         return UnsafeMutableAudioBufferListPointer(storage.assumingMemoryBound(to: AudioBufferList.self)).reduce(0) { $0 + $1.mNumberChannels }
     }
-    static func defaultDevice(input: Bool) -> AudioObjectID {
-        (try? read(system, address(input ? kAudioHardwarePropertyDefaultInputDevice : kAudioHardwarePropertyDefaultOutputDevice), default: AudioObjectID(0))) ?? 0
+    static func defaultOutputDevice() -> AudioObjectID {
+        (try? read(system, address(kAudioHardwarePropertyDefaultOutputDevice), default: AudioObjectID(0))) ?? 0
     }
 }
 
@@ -81,7 +81,6 @@ struct AudioDevice: Identifiable, Equatable {
     let id: AudioObjectID
     let uid: String
     let name: String
-    let inputChannels: UInt32
     let outputChannels: UInt32
     let transportType: UInt32
 
@@ -101,28 +100,28 @@ struct AudioDevice: Identifiable, Equatable {
         (try? HAL.read(id, HAL.address(kAudioDevicePropertyNominalSampleRate), default: Double(0))) ?? 0
     }
 
-    static func all() throws -> [AudioDevice] {
+    static func allOutputs() throws -> [AudioDevice] {
         try HAL.ids(HAL.system, HAL.address(kAudioHardwarePropertyDevices)).compactMap { id in
             guard let uid = HAL.string(id, kAudioDevicePropertyDeviceUID), !uid.hasPrefix("com.peterdpong.fader.") else { return nil }
+            let outputChannels = HAL.channels(id, scope: kAudioDevicePropertyScopeOutput)
+            guard outputChannels > 0 else { return nil }
             return AudioDevice(id: id, uid: uid, name: HAL.string(id, kAudioObjectPropertyName) ?? "Audio device",
-                               inputChannels: HAL.channels(id, scope: kAudioDevicePropertyScopeInput),
-                               outputChannels: HAL.channels(id, scope: kAudioDevicePropertyScopeOutput),
+                               outputChannels: outputChannels,
                                transportType: (try? HAL.read(id, HAL.address(kAudioDevicePropertyTransportType), default: UInt32(0))) ?? 0)
         }.sorted { $0.name.localizedStandardCompare($1.name) == .orderedAscending }
     }
-    func volumeAddresses(input: Bool) -> [AudioObjectPropertyAddress] {
-        let scope = input ? kAudioDevicePropertyScopeInput : kAudioDevicePropertyScopeOutput
+    func volumeAddresses() -> [AudioObjectPropertyAddress] {
+        let scope = kAudioDevicePropertyScopeOutput
         let main = HAL.address(kAudioDevicePropertyVolumeScalar, scope)
         if HAL.writable(id, main) { return [main] }
-        let count = input ? inputChannels : outputChannels
-        return (0..<count).map { HAL.address(kAudioDevicePropertyVolumeScalar, scope, $0 + 1) }.filter { HAL.writable(id, $0) }
+        return (0..<outputChannels).map { HAL.address(kAudioDevicePropertyVolumeScalar, scope, $0 + 1) }.filter { HAL.writable(id, $0) }
     }
-    func volume(input: Bool) -> Float? {
-        let values = volumeAddresses(input: input).compactMap { try? HAL.read(id, $0, default: Float(0)) }
+    func volume() -> Float? {
+        let values = volumeAddresses().compactMap { try? HAL.read(id, $0, default: Float(0)) }
         return values.isEmpty ? nil : values.reduce(0, +) / Float(values.count)
     }
-    func setVolume(_ value: Float, input: Bool) throws {
-        for address in volumeAddresses(input: input) { try HAL.write(id, address, min(1, max(0, value))) }
+    func setVolume(_ value: Float) throws {
+        for address in volumeAddresses() { try HAL.write(id, address, min(1, max(0, value))) }
     }
 }
 

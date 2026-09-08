@@ -8,9 +8,7 @@ import ServiceManagement
     var sources: [AudioSource] = []
     var visibleSources: [AudioSource] = []
     var outputID: AudioObjectID = 0
-    var inputID: AudioObjectID = 0
     var outputVolume: Float?
-    var inputVolume: Float?
     var errorMessage: String?
     var sourceErrors: [String: String] = [:]
     var loginEnabled = SMAppService.mainApp.status == .enabled
@@ -41,7 +39,7 @@ import ServiceManagement
             Task { @MainActor in self?.scheduleRefresh() }
         }
         systemObservers = [kAudioHardwarePropertyDevices, kAudioHardwarePropertyDefaultOutputDevice,
-                           kAudioHardwarePropertyDefaultInputDevice, kAudioHardwarePropertyProcessObjectList]
+                           kAudioHardwarePropertyProcessObjectList]
             .compactMap { AudioObservation(HAL.system, HAL.address($0), changed: changed) }
         let center = NSWorkspace.shared.notificationCenter
         workspaceTokens.append(center.addObserver(forName: NSWorkspace.willSleepNotification, object: nil, queue: .main) { [weak self] _ in
@@ -57,10 +55,8 @@ import ServiceManagement
         }
         refresh()
     }
-    var outputs: [AudioDevice] { devices.filter { $0.outputChannels > 0 } }
-    var inputs: [AudioDevice] { devices.filter { $0.inputChannels > 0 } }
+    var outputs: [AudioDevice] { devices }
     var output: AudioDevice? { devices.first { $0.id == outputID } }
-    var input: AudioDevice? { devices.first { $0.id == inputID } }
     func preference(_ id: String) -> SourceSettings {
         AudioMixingPolicy.isProtected(bundleID: id) ? SourceSettings() : settings[id] ?? SourceSettings()
     }
@@ -73,8 +69,7 @@ import ServiceManagement
             names[source.id] = source.name
         }
         return MixSnapshot(settings: values, names: names,
-                           output: output.map { PresetDevice(uid: $0.uid, name: $0.name, volume: outputVolume) },
-                           input: input.map { PresetDevice(uid: $0.uid, name: $0.name, volume: inputVolume) })
+                           output: output.map { PresetDevice(uid: $0.uid, name: $0.name, volume: outputVolume) })
     }
 
     var currentPreset: MixPreset? {
@@ -114,16 +109,15 @@ import ServiceManagement
         sourceErrors = [:]
         failedConfigurations = [:]
         var issues: [String] = []
-        for isInput in [false, true] {
-            guard let saved = isInput ? preset.mix.input : preset.mix.output else { continue }
-            guard let device = (isInput ? inputs : outputs).first(where: { $0.uid == saved.uid }) else {
-                issues.append("\(saved.name) is disconnected; kept the current \(isInput ? "input" : "output").")
-                continue
+        if let saved = preset.mix.output {
+            if let device = outputs.first(where: { $0.uid == saved.uid }) {
+                do {
+                    try HAL.write(HAL.system, HAL.address(kAudioHardwarePropertyDefaultOutputDevice), device.id)
+                    if let volume = saved.volume { try device.setVolume(volume) }
+                } catch { issues.append(error.localizedDescription) }
+            } else {
+                issues.append("\(saved.name) is disconnected; kept the current output.")
             }
-            do {
-                try HAL.write(HAL.system, HAL.address(isInput ? kAudioHardwarePropertyDefaultInputDevice : kAudioHardwarePropertyDefaultOutputDevice), device.id)
-                if let volume = saved.volume { try device.setVolume(volume, input: isInput) }
-            } catch { issues.append(error.localizedDescription) }
         }
         errorMessage = issues.isEmpty ? nil : issues.joined(separator: "\n")
         refresh()
@@ -145,13 +139,11 @@ import ServiceManagement
     }
     func refresh() {
         do {
-            devices = try AudioDevice.all()
+            devices = try AudioDevice.allOutputs()
             sources = try AudioSource.all()
             updateVisibleSources()
-            outputID = HAL.defaultDevice(input: false)
-            inputID = HAL.defaultDevice(input: true)
-            outputVolume = output?.volume(input: false)
-            inputVolume = input?.volume(input: true)
+            outputID = HAL.defaultOutputDevice()
+            outputVolume = output?.volume()
             loginEnabled = SMAppService.mainApp.status == .enabled
             updateObservers()
             reconcile()
@@ -195,19 +187,13 @@ import ServiceManagement
                 AudioObservation($0, HAL.address(kAudioProcessPropertyIsRunningOutput), changed: changed)
             }
         }
-        let deviceIDs = [outputID, inputID] + outputs.map(\.id)
+        let deviceIDs = [outputID] + outputs.map(\.id)
         if deviceIDs != watchedDevices {
             watchedDevices = deviceIDs
-            deviceObservers = [output, input].enumerated().flatMap { index, device -> [AudioObservation] in
-                guard let device else { return [] }
-                var addresses = device.volumeAddresses(input: index == 1)
+            deviceObservers = outputs.flatMap { device -> [AudioObservation] in
+                var addresses = device.id == outputID ? device.volumeAddresses() : []
                 addresses += [HAL.address(kAudioDevicePropertyNominalSampleRate), HAL.address(kAudioDevicePropertyDeviceIsAlive)]
                 return addresses.compactMap { AudioObservation(device.id, $0, changed: changed) }
-            }
-            deviceObservers += outputs.flatMap { device in
-                [kAudioDevicePropertyNominalSampleRate, kAudioDevicePropertyDeviceIsAlive].compactMap {
-                    AudioObservation(device.id, HAL.address($0), changed: changed)
-                }
             }
         }
     }
@@ -272,17 +258,17 @@ import ServiceManagement
         workspaceTokens = []
         stopMixers()
     }
-    func selectDevice(_ id: AudioObjectID, input: Bool) {
+    func selectOutput(_ id: AudioObjectID) {
         do {
-            try HAL.write(HAL.system, HAL.address(input ? kAudioHardwarePropertyDefaultInputDevice : kAudioHardwarePropertyDefaultOutputDevice), id)
+            try HAL.write(HAL.system, HAL.address(kAudioHardwarePropertyDefaultOutputDevice), id)
             sourceErrors = [:]
             refresh()
         } catch { errorMessage = error.localizedDescription }
     }
-    func setDeviceVolume(_ value: Float, input: Bool) {
+    func setOutputVolume(_ value: Float) {
         do {
-            try (input ? self.input : output)?.setVolume(value, input: input)
-            if input { inputVolume = value } else { outputVolume = value }
+            try output?.setVolume(value)
+            outputVolume = value
         } catch { errorMessage = error.localizedDescription }
     }
     func setLogin(_ value: Bool) {

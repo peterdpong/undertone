@@ -7,8 +7,8 @@ import SwiftUI
     init() {
         if CommandLine.arguments.contains("--diagnose") {
             do {
-                for device in try AudioDevice.all() {
-                    print("Device: \(device.name) | in=\(device.inputChannels) out=\(device.outputChannels) | output volume=\(device.volume(input: false).map(String.init(describing:)) ?? "hardware controlled")")
+                for device in try AudioDevice.allOutputs() {
+                    print("Output: \(device.name) | channels=\(device.outputChannels) | volume=\(device.volume().map(String.init(describing:)) ?? "hardware controlled")")
                 }
                 for source in try AudioSource.all() {
                     print("App: \(source.name) | \(source.id) | playing=\(source.isPlaying) | processes=\(source.processes)")

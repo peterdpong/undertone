@@ -11,7 +11,7 @@ import Foundation
                     "com.music": SourceSettings(volume: 0.5, muted: true),
                     "pid.123": SourceSettings(volume: 3)]
         let output = PresetDevice(uid: "speakers", name: "Speakers", volume: 0.68)
-        let snapshot = MixSnapshot(settings: live, names: ["com.browser": "Browser", "pid.123": "Helper"], output: output, input: nil)
+        let snapshot = MixSnapshot(settings: live, names: ["com.browser": "Browser", "pid.123": "Helper"], output: output)
         precondition(snapshot.apps["pid.123"] == nil && snapshot.names["pid.123"] == nil)
         live["com.browser"]?.volume = 1
         precondition(snapshot.apps["com.browser"]?.volume == 2, "Snapshot must remain independent of current edits")
@@ -20,6 +20,20 @@ import Foundation
         let restored = PresetLibrary(defaults: defaults).load()
         precondition(restored == [preset], "Names, identities, boosts, mute, routes and devices must survive relaunch")
         precondition(restored[0].mix.apps["com.browser"]?.gain == 2, "Inactive app boost must be retained by stable identity")
+        // Older libraries may contain a microphone that is no longer connected.
+        // It must not affect the saved output mix, matching, or subsequent saves.
+        var legacyJSON = try JSONSerialization.jsonObject(with: JSONEncoder().encode(preset)) as! [String: Any]
+        var legacyMix = legacyJSON["mix"] as! [String: Any]
+        legacyMix["input"] = ["uid": "old-microphone", "name": "Old Microphone", "volume": 0.2]
+        legacyJSON["mix"] = legacyMix
+        defaults.set(try JSONSerialization.data(withJSONObject: [legacyJSON]), forKey: "mixPresets")
+        let outputOnly = library.load()
+        precondition(outputOnly == restored && outputOnly[0].mix.matches(snapshot),
+                     "Legacy input settings must not change output presets or matching")
+        library.save(outputOnly)
+        let savedJSON = try JSONSerialization.jsonObject(with: defaults.data(forKey: "mixPresets")!) as! [[String: Any]]
+        precondition((savedJSON[0]["mix"] as! [String: Any])["input"] == nil,
+                     "Saving a preset must omit input settings")
         var equivalent = snapshot
         equivalent.apps["com.newapp"] = SourceSettings()
         equivalent.names["com.browser"] = "Renamed Browser"
@@ -52,6 +66,6 @@ import Foundation
                      "Applying an unmigrated preset must use the same call protection")
         defaults.set(Data("invalid".utf8), forKey: "mixPresets")
         precondition(library.load().isEmpty, "Invalid data must not crash startup")
-        print("PASS: preset snapshots, identity, persistence, matching, rename, deletion, call migration, invalid data")
+        print("PASS: preset snapshots, identity, persistence, matching, rename, deletion, legacy input compatibility, call migration, invalid data")
     }
 }

@@ -46,11 +46,7 @@ struct MixerPopover: View {
             .padding(.vertical, 12)
 
             Divider()
-            VStack(alignment: .leading, spacing: 14) {
-                deviceSection(input: false)
-                Divider()
-                deviceSection(input: true)
-            }.padding(14)
+            outputSection.padding(14)
 
             Divider()
             Text("Applications")
@@ -103,26 +99,26 @@ struct MixerPopover: View {
         NSApp.activate(ignoringOtherApps: true)
     }
 
-    private func deviceSection(input: Bool) -> some View {
-        let devices = input ? model.inputs : model.outputs
-        let selected = input ? model.inputID : model.outputID
-        let volume = input ? model.inputVolume : model.outputVolume
+    private var outputSection: some View {
+        let devices = model.outputs
+        let selected = model.outputID
+        let volume = model.outputVolume
         return VStack(alignment: .leading, spacing: 6) {
-            Picker(input ? "Input" : "Output", selection: Binding(get: { selected }, set: { model.selectDevice($0, input: input) })) {
+            Picker("Output", selection: Binding(get: { selected }, set: { model.selectOutput($0) })) {
                 if devices.isEmpty { Text("No Devices").tag(UInt32(0)) }
                 ForEach(devices) { device in
-                    Label(device.name, systemImage: input ? "mic" : device.outputSymbol).tag(device.id)
+                    Label(device.name, systemImage: device.outputSymbol).tag(device.id)
                 }
             }
             .disabled(devices.isEmpty)
-            .accessibilityLabel(input ? "Input device" : "Output device")
+            .accessibilityLabel("Output device")
 
             if let volume {
                 HStack(spacing: 8) {
-                    Image(systemName: input ? "mic" : "speaker.wave.2")
+                    Image(systemName: "speaker.wave.2")
                         .foregroundStyle(.secondary).frame(width: 20)
-                    Slider(value: Binding(get: { Double(volume) }, set: { model.setDeviceVolume(Float($0), input: input) }), in: 0...1)
-                        .accessibilityLabel(input ? "Microphone level" : "Output volume")
+                    Slider(value: Binding(get: { Double(volume) }, set: { model.setOutputVolume(Float($0)) }), in: 0...1)
+                        .accessibilityLabel("Output volume")
                     Text(volume.formatted(.percent.precision(.fractionLength(0))))
                         .font(.caption).monospacedDigit().foregroundStyle(.secondary)
                         .frame(width: 34, alignment: .trailing)

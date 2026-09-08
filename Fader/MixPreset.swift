@@ -10,22 +10,21 @@ struct MixSnapshot: Codable, Equatable {
     var apps: [String: SourceSettings]
     var names: [String: String]
     var output: PresetDevice?
-    var input: PresetDevice?
 
-    init(settings: [String: SourceSettings], names: [String: String], output: PresetDevice?, input: PresetDevice?) {
+    // Codable ignores the input field in older presets; it is never restored.
+    init(settings: [String: SourceSettings], names: [String: String], output: PresetDevice?) {
         // Process IDs are recycled; only app identities can safely survive a relaunch.
         let savedApps = AudioMixingPolicy.sanitized(settings).filter { !$0.key.hasPrefix("pid.") }
         apps = savedApps
         self.names = names.filter { savedApps[$0.key] != nil }
         self.output = output
-        self.input = input
     }
 
     func matches(_ other: MixSnapshot) -> Bool {
         // Explicit defaults and apps that have never been adjusted mean the same thing.
         let adjusted = AudioMixingPolicy.sanitized(apps).filter { $0.value != SourceSettings() }
         let otherAdjusted = AudioMixingPolicy.sanitized(other.apps).filter { $0.value != SourceSettings() }
-        return adjusted == otherAdjusted && Self.matches(output, other.output) && Self.matches(input, other.input)
+        return adjusted == otherAdjusted && Self.matches(output, other.output)
     }
 
     private static func matches(_ lhs: PresetDevice?, _ rhs: PresetDevice?) -> Bool {
@@ -54,7 +53,7 @@ struct PresetLibrary {
         let migrated = saved.map { preset in
             var preset = preset
             preset.mix = MixSnapshot(settings: preset.mix.apps, names: preset.mix.names,
-                                     output: preset.mix.output, input: preset.mix.input)
+                                     output: preset.mix.output)
             return preset
         }
         if migrated != saved { save(migrated) }

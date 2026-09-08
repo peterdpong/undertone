@@ -85,10 +85,7 @@ private struct PresetDetail: View {
                 VStack(alignment: .leading, spacing: 16) {
                     TextField("Preset name", text: $draft.name).textFieldStyle(.roundedBorder)
                         .accessibilityLabel("Preset name")
-                    VStack(spacing: 10) {
-                        deviceRow(draft.mix.output, input: false)
-                        deviceRow(draft.mix.input, input: true)
-                    }
+                    outputRow(draft.mix.output)
                     Divider()
                     if draft.mix.apps.isEmpty {
                         Text("No saved app levels").foregroundStyle(.secondary)
@@ -108,7 +105,7 @@ private struct PresetDetail: View {
                                         }
                                         Text(value.muted ? "Muted" : value.volume.formatted(.percent.precision(.fractionLength(0))))
                                             .monospacedDigit()
-                                            .foregroundStyle(value.volume > 1 && !value.muted ? Color.accentColor : .secondary)
+                                            .foregroundStyle(.primary)
                                     }
                                 }
                             }
@@ -134,10 +131,10 @@ private struct PresetDetail: View {
         .onChange(of: preset) { _, updated in draft = updated }
     }
 
-    private func deviceRow(_ device: PresetDevice?, input: Bool) -> some View {
+    private func outputRow(_ device: PresetDevice?) -> some View {
         HStack {
-            Image(systemName: input ? "mic" : "speaker.wave.2").frame(width: 20)
-            Text(device?.name ?? (input ? "No input" : "No output")).lineLimit(1)
+            Image(systemName: "speaker.wave.2").frame(width: 20)
+            Text(device?.name ?? "No output").lineLimit(1)
             Spacer()
             if let volume = device?.volume {
                 Text(volume.formatted(.percent.precision(.fractionLength(0)))).foregroundStyle(.secondary).monospacedDigit()

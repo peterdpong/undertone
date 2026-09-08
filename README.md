@@ -7,13 +7,12 @@ A small, native macOS menu bar volume mixer, built in the style of [Horizon](htt
 - Per-app volume (0–400%) and mute; unmuting restores the saved level, including boost.
 - Per-app output routing, with a system-output default.
 - System output selection and hardware volume where supported.
-- Microphone/input selection and hardware input gain where supported.
 - Saved app levels and routes, automatic mixing while Fader runs, and optional launch at login.
 - Applications appear after their first audio playback during the current Fader session. Their controls stay visible through pauses and closed audio streams until the app fully quits. Relaunching an app quietly does not restore its row until it plays again; volume, boost, mute, and routing preferences remain saved. Each app shows its effective output's icon; click it to select an output directly. The reset arrow restores 100% volume and unmutes without changing the selected output.
 - Unplugged app outputs fall back to the system output and reconnect when available.
 - Named mix presets, saved from the current state and managed in a native Settings window.
 
-Input selection changes the macOS default input. Apps with their own microphone selection may override it. Per-app controls apply to playback; they do not mix microphones. Browser helper processes are grouped under their containing app when the system exposes that identity; separate browser tabs are not separate sliders.
+Fader controls audio output only. Browser helper processes are grouped under their containing app when the system exposes that identity; separate browser tabs are not separate sliders.
 
 The application list follows Core Audio's output-running notifications and macOS app launch/termination events, with no polling or extra audio taps. Session visibility tracks running app instances independently of audio processes, so closing a browser tab or releasing an audio stream does not remove the parent app's controls. Paused rows retain their name and icon while their audio-processing resources are released. Restarting Fader starts a fresh visibility session.
 
@@ -54,7 +53,7 @@ Discovery uses Core Audio property listeners with a short event-coalescing delay
 
 Set up your mix, open **Presets → Save Current Mix…**, and name it—for example, “FaceTime” with your browser at 200%. Choose its name from the same menu to apply it. Switching is manual; Fader does not watch calls or automatically change presets.
 
-Presets save visible session apps plus previously adjusted apps, including boost, mute, and per-app output routes. They also save the system input/output selections and their supported hardware levels. Saved app identities survive app restarts, so an inactive browser receives its saved boost when it next plays. Transient sources identified only by process ID are omitted because those IDs can belong to another process after relaunch.
+Presets save visible session apps plus previously adjusted apps, including boost, mute, and per-app output routes. They also save the system output selection and its supported hardware level. Older presets still load; their saved input settings are ignored. Saved app identities survive app restarts, so an inactive browser receives its saved boost when it next plays. Transient sources identified only by process ID are omitted because those IDs can belong to another process after relaunch.
 
 **Manage Presets…** opens a sidebar settings window modeled on Horizon. Select a preset to inspect its saved mix, rename it, or choose **Use Current Mix → Save** to replace its snapshot. The plus button saves another snapshot; minus deletes the selected preset without changing the live mix. **Apply** restores a saved preset. Unsaved edits must be saved or reverted before applying.
 
@@ -62,7 +61,7 @@ Applying a preset replaces app preferences, resetting apps absent from that pres
 
 ## Boosting quiet apps
 
-Drag an application's slider above 100%, or Control-click the percentage for 100%, 200%, and 400% presets. Click the reset arrow to return to 100% without changing its output route. Hardware output and microphone sliders remain at their supported 0–100% range.
+Drag an application's slider above 100%, or Control-click the percentage to choose a common level. Mouse adjustments snap near 0%, 50%, 100%, 150%, 200%, 300%, and 400%; hold Option to adjust precisely. Click the reset arrow to return to 100% without changing its output route. Hardware output volume remains in its supported 0–100% range.
 
 200% applies 2× amplitude (about +6 dB); 400% applies 4× (about +12 dB), before peak protection. These percentages do not represent perceived loudness. A stereo-linked limiter reduces gain when an app would exceed full scale, holds that reduction for 50 ms, and recovers smoothly with a 120 ms release time constant. This replaces sample-by-sample peak shaping, which added distortion to loud sources even at modest boost. Quiet signals receive the requested gain; already-loud audio has less headroom and receives less boost. The limiter uses the actual render sample rate and adds no lookahead or buffering. Sudden limiting can still affect transients; it cannot repair distortion already present in the source or guarantee that the final sum of multiple apps will not clip.
 
