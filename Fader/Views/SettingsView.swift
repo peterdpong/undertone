@@ -164,7 +164,9 @@ private struct PresetDetail: View {
     }
 
     @ViewBuilder private func appIcon(_ id: String) -> some View {
-        if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
+        if AudioSource.isSystemSound(id) {
+            Image(systemName: "bell.fill").resizable().scaledToFit()
+        } else if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
             Image(nsImage: NSWorkspace.shared.icon(forFile: url.path)).resizable()
         } else {
             Image(systemName: "app.dashed").resizable()

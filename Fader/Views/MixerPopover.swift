@@ -153,7 +153,7 @@ private struct SourceRow: View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(spacing: 8) {
                 Group {
-                    if let icon = source.icon { Image(nsImage: icon).resizable() }
+                    if let icon = source.icon { Image(nsImage: icon).resizable().scaledToFit() }
                     else { Image(systemName: "app.dashed").resizable() }
                 }.frame(width: 20, height: 20).accessibilityHidden(true)
                 Text(source.name).lineLimit(1)

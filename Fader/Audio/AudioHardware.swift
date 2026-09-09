@@ -134,6 +134,11 @@ struct AudioSource: Identifiable {
     var isPlaying: Bool
     var isApplication: Bool
 
+    static func isSystemSound(_ id: String) -> Bool {
+        ["com.apple.audio.systemsoundserverd", "com.apple.audio.systemsoundserv",
+         "systemsoundserverd", "systemsoundserv"].contains(id)
+    }
+
     @MainActor static func all() throws -> [AudioSource] {
         var grouped: [String: AudioSource] = [:]
         for object in try HAL.ids(HAL.system, HAL.address(kAudioHardwarePropertyProcessObjectList)) {
@@ -162,9 +167,7 @@ struct AudioSource: Identifiable {
             let key = bundle?.bundleIdentifier ?? rawID
             guard key != Bundle.main.bundleIdentifier, !AudioMixingPolicy.isProtected(bundleID: key) else { continue }
             // System effects are played by a shared macOS service, not one app.
-            let isSystemSound = ["com.apple.audio.systemsoundserverd", "com.apple.audio.systemsoundserv",
-                                 "systemsoundserverd", "systemsoundserv"].contains(rawID) ||
-                ["systemsoundserverd", "systemsoundserv"].contains(rawProcessName ?? "")
+            let isSystemSound = Self.isSystemSound(rawID) || Self.isSystemSound(rawProcessName ?? "")
             let name = isSystemSound ? "System Sounds" : [bundle?.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String,
                         bundle?.object(forInfoDictionaryKey: "CFBundleName") as? String,
                         app?.localizedName, executableURL?.lastPathComponent]
@@ -177,7 +180,9 @@ struct AudioSource: Identifiable {
                 grouped[key] = existing
             } else {
                 grouped[key] = AudioSource(id: key, name: name,
-                                          icon: bundleURL.map { NSWorkspace.shared.icon(forFile: $0.path) } ?? app?.icon,
+                                          icon: isSystemSound
+                                              ? NSImage(systemSymbolName: "bell.fill", accessibilityDescription: "System Sounds")
+                                              : bundleURL.map { NSWorkspace.shared.icon(forFile: $0.path) } ?? app?.icon,
                                           processes: [object], processIDs: [pid], isPlaying: playing,
                                           isApplication: bundleURL?.pathExtension == "app")
             }
